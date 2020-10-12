@@ -23,6 +23,10 @@ public interface ConstantPool {
 
     String PROPERTIES_FILE_SUFFIX = "properties";
 
+    String EXECUTION_PREFIX = "execution(";
+
+    String ANNOTATION_PREFIX = "@annotation(";
+
     String ANY_PARAM = "..";
 
     String RIGHT_BRACKET = ")";

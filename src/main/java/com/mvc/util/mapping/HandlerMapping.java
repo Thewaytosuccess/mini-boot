@@ -14,6 +14,7 @@ import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.io.*;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
@@ -78,6 +79,32 @@ public class HandlerMapping {
                 }
             });
             CLASSES.forEach(e -> reInject(e,classes));
+
+            Map<Class<? extends Annotation>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
+            Set<Class<? extends Annotation>> annotations = annotationMethodMap.keySet();
+
+            Map<String,Class<? extends Annotation>> map = new ConcurrentHashMap<>(16);
+            CLASSES.forEach(e -> getMethodAnnotated(e,annotations,map));
+            List<MethodInfo> methods = new ArrayList<>();
+            map.forEach((k,v) -> methods.add(annotationMethodMap.get(v).setMethodName(k)));
+            AspectProcessor.createProxy(methods);
+        }
+    }
+
+    private static void getMethodAnnotated(String className, Set<Class<? extends Annotation>> annotations,
+                                           Map<String, Class<? extends Annotation>> map) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            Method[] declaredMethods = clazz.getDeclaredMethods();
+            for(Method m:declaredMethods){
+                for(Class<? extends Annotation> a:annotations){
+                    if(m.isAnnotationPresent(a)){
+                        map.put(className + PATH_SEPARATOR + m.getName(),a);
+                    }
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 

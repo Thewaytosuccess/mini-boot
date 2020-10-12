@@ -1,5 +1,7 @@
 package com.mvc.entity.method;
 
+import com.mvc.enums.AdviceEnum;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -9,11 +11,15 @@ import java.util.Objects;
  */
 public class MethodInfo {
 
+    AdviceEnum adviceEnum;
+
     private int modifiers;
 
     private Class<?> returnType;
 
     private String methodName;
+
+    private String adviceMethod;
 
     private int parameterCount;
 
@@ -30,6 +36,22 @@ public class MethodInfo {
     public MethodInfo(String methodName, List<Param> params) {
         this.methodName = methodName;
         this.params = params;
+    }
+
+    public String getAdviceMethod() {
+        return adviceMethod;
+    }
+
+    public void setAdviceMethod(String adviceMethod) {
+        this.adviceMethod = adviceMethod;
+    }
+
+    public AdviceEnum getAdviceEnum() {
+        return adviceEnum;
+    }
+
+    public void setAdviceEnum(AdviceEnum adviceEnum) {
+        this.adviceEnum = adviceEnum;
     }
 
     public void setCompared(boolean compared) {
@@ -76,8 +98,9 @@ public class MethodInfo {
         return methodName;
     }
 
-    public void setMethodName(String methodName) {
+    public MethodInfo setMethodName(String methodName) {
         this.methodName = methodName;
+        return this;
     }
 
     public List<Param> getParams() {

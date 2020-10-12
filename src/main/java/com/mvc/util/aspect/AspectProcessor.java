@@ -13,9 +13,11 @@ import com.mvc.util.proxy.jdk.JdkProxy;
 import com.mvc.util.proxy.jdk.JdkAroundProxy;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,6 +41,11 @@ public class AspectProcessor {
     private static final Map<Class<?>, ProceedingJoinPoint> PROXY_JOIN_POINT_MAP = new ConcurrentHashMap<>();
 
     /**
+     * 注解和切面方法的映射
+     */
+    private static final Map<Class<? extends Annotation>,MethodInfo> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
+
+    /**
      * 解析execution表达式
      * @param clazz Class Object
      *  1.jdk动态代理
@@ -52,27 +59,31 @@ public class AspectProcessor {
             for(Method m:declaredMethods){
                 methodName = clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName();
                 if(m.isAnnotationPresent(Before.class)){
-                    MethodInfo info = parseExecutionExpression(m.getAnnotation(Before.class).execution());
+                    MethodInfo info = parseExpression(m.getAnnotation(Before.class).value(),methodName,AdviceEnum.Before);
                     if(Objects.nonNull(info)){
                         createProxy(methodName,info, AdviceEnum.Before);
                     }
                 }else if(m.isAnnotationPresent(Around.class)){
-                    MethodInfo info = parseExecutionExpression(m.getAnnotation(Around.class).execution());
+                    MethodInfo info = parseExpression(m.getAnnotation(Around.class).value(), methodName,
+                            AdviceEnum.Around);
                     if(Objects.nonNull(info)){
                         createProxy(methodName,info, AdviceEnum.Around);
                     }
                 }else if(m.isAnnotationPresent(After.class)){
-                    MethodInfo info = parseExecutionExpression(m.getAnnotation(After.class).execution());
+                    MethodInfo info = parseExpression(m.getAnnotation(After.class).value(), methodName,
+                            AdviceEnum.After);
                     if(Objects.nonNull(info)){
                         createProxy(methodName,info, AdviceEnum.After);
                     }
                 }else if(m.isAnnotationPresent(AfterReturning.class)){
-                    MethodInfo info = parseExecutionExpression(m.getAnnotation(AfterReturning.class).execution());
+                    MethodInfo info = parseExpression(m.getAnnotation(AfterReturning.class).value(), methodName,
+                            AdviceEnum.AfterReturning);
                     if(Objects.nonNull(info)){
                         createProxy(methodName,info, AdviceEnum.AfterReturning);
                     }
                 }else if(m.isAnnotationPresent(AfterThrowing.class)){
-                    MethodInfo info = parseExecutionExpression(m.getAnnotation(AfterThrowing.class).execution());
+                    MethodInfo info = parseExpression(m.getAnnotation(AfterThrowing.class).value(), methodName,
+                            AdviceEnum.AfterThrowing);
                     if(Objects.nonNull(info)){
                         createProxy(methodName,info, AdviceEnum.AfterThrowing);
                     }
@@ -82,12 +93,14 @@ public class AspectProcessor {
     }
 
     public static boolean reInjected(){
-        return !CLASS_IMPL_INTERFACES_MAP.isEmpty();
+        return !CLASS_IMPL_INTERFACES_MAP.isEmpty() || !ANNOTATION_METHOD_MAP.isEmpty();
     }
 
     public static Map<String,Class<?>[]> getReInjected(){
         return CLASS_IMPL_INTERFACES_MAP;
     }
+
+    public static Map<Class<? extends Annotation>,MethodInfo> getAnnotationMethodMap(){ return ANNOTATION_METHOD_MAP; }
 
     public static String getClassImpl(Class<?> interfaceClass){
         //jdk proxy
@@ -208,28 +221,60 @@ public class AspectProcessor {
      * @param execution execution表达式
      * eg:[public String com.mvc.Class.method(pType pName...)]
      */
-    private static MethodInfo parseExecutionExpression(String execution) {
+    private static MethodInfo parseExpression(String execution, String methodName, AdviceEnum adviceEnum) {
         if(!execution.isEmpty()){
-            String[] split = execution.split(" ");
-            if(split.length != ConstantPool.TWO){
-                throw new IllegalArgumentException();
+            if(execution.startsWith(ConstantPool.EXECUTION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
+                return parseExecutionExpression(execution);
+            }else if(execution.startsWith(ConstantPool.ANNOTATION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
+                parseAnnotationExpression(execution,methodName,adviceEnum);
             }
-            MethodInfo info = new MethodInfo();
-            if(!split[0].isEmpty()){
-                setModifiers(info,split[0]);
-            }else{
-                throw new IllegalArgumentException();
-            }
-
-            String param = split[1];
-            if(!param.isEmpty()){
-                setNameAndParameters(info,param);
-            }else{
-                throw new IllegalArgumentException();
-            }
-            return info;
         }
         return null;
+    }
+
+    private static MethodInfo parseExecutionExpression(String execution){
+        execution = execution.substring(execution.indexOf(ConstantPool.EXECUTION_PREFIX + 1), execution.length() - 1);
+        String[] split = execution.split(" ");
+        if(split.length != ConstantPool.TWO){
+            throw new IllegalArgumentException();
+        }
+        MethodInfo info = new MethodInfo();
+        if(!split[0].isEmpty()){
+            setModifiers(info,split[0]);
+        }else{
+            throw new IllegalArgumentException();
+        }
+
+        String param = split[1];
+        if(!param.isEmpty()){
+            setNameAndParameters(info,param);
+        }else{
+            throw new IllegalArgumentException();
+        }
+        return info;
+    }
+
+    private static void parseAnnotationExpression(String execution, String methodName, AdviceEnum adviceEnum) {
+        execution = execution.substring(execution.indexOf(ConstantPool.ANNOTATION_PREFIX + 1), execution.length() - 1);
+        if(execution.isEmpty()){
+            throw new IllegalArgumentException();
+        }
+
+        try {
+            //扫描包含此注解的方法创建aop代理
+            Object obj = Class.forName(execution).newInstance();
+            if(obj instanceof Annotation){
+                Annotation a = (Annotation)obj;
+                MethodInfo info = new MethodInfo();
+                info.setAdviceMethod(methodName);
+                info.setAdviceEnum(adviceEnum);
+                ANNOTATION_METHOD_MAP.put(a.annotationType(),info);
+            }else{
+                throw new IllegalArgumentException();
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException();
+        }
     }
 
     private static void setNameAndParameters(MethodInfo info, String s) {
@@ -264,4 +309,29 @@ public class AspectProcessor {
         }
     }
 
+    public static void createProxy(List<MethodInfo> methods) {
+        if(methods.isEmpty()){
+            return;
+        }
+
+        for(MethodInfo e:methods){
+            switch (e.getAdviceEnum()){
+                case Before:
+                    //todo
+                    //createProxy(e.getAdviceMethod(),info, AdviceEnum.Before);
+                    break;
+                case Around:
+                    break;
+                case AfterReturning:
+                    break;
+                case AfterThrowing:
+                    break;
+                case After:
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + e.getAdviceEnum());
+            }
+        }
+
+    }
 }
