@@ -11,7 +11,15 @@ import java.util.Objects;
  */
 public class MethodInfo {
 
+    /**
+     * 方法上的切面类型
+     */
     AdviceEnum adviceEnum;
+
+    /**
+     * 方法对应的切面方法
+     */
+    private String adviceMethod;
 
     private int modifiers;
 
@@ -19,13 +27,11 @@ public class MethodInfo {
 
     private String methodName;
 
-    private String adviceMethod;
-
     private int parameterCount;
 
     private Class<?>[] parameterTypes;
 
-    private boolean compared;
+    private boolean compared = true;
 
     private List<Param> params;
 
@@ -98,9 +104,8 @@ public class MethodInfo {
         return methodName;
     }
 
-    public MethodInfo setMethodName(String methodName) {
+    public void setMethodName(String methodName) {
         this.methodName = methodName;
-        return this;
     }
 
     public List<Param> getParams() {
