@@ -5,13 +5,14 @@ import com.mvc.util.proxy.ProceedingJoinPoint;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * @author xhzy
  */
 public class JdkProxy extends ProceedingJoinPoint implements InvocationHandler {
 
-    public JdkProxy(Object target, MethodInfo info, String[] methods, boolean jdkProxy) {
+    public JdkProxy(Object target, List<MethodInfo> info, String[] methods, boolean jdkProxy) {
         super(target, info, methods, jdkProxy);
     }
 

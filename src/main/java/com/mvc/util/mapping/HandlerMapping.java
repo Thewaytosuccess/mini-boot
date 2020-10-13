@@ -59,10 +59,23 @@ public class HandlerMapping {
         CLASSES.forEach(HandlerMapping::inject);
         //4.切面扫描
         CLASSES.forEach(HandlerMapping::aspectScan);
-        //5.判断是否需要重新注入
+        //5.判断是否需要创建代理
+        createProxy();
+        //6.判断是否需要重新注入代理
         reInject();
-        //reInject();
         print();
+    }
+
+    private static void createProxy() {
+        if(AspectProcessor.rescan()){
+            //为携带切面注解的方法生成代理
+            Map<Class<?>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
+            if(!annotationMethodMap.isEmpty()){
+                Set<Class<?>> annotations = annotationMethodMap.keySet();
+                CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap));
+                AspectProcessor.createProxy(annotationMethodMap.values());
+            }
+        }
     }
 
     private static void reInject(){
@@ -84,13 +97,7 @@ public class HandlerMapping {
                 CLASSES.forEach(e -> reInject(e,classes));
             }
 
-            //为注解的方法生成代理
-            Map<Class<?>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
-            if(!annotationMethodMap.isEmpty()){
-                Set<Class<?>> annotations = annotationMethodMap.keySet();
-                CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap));
-                AspectProcessor.createProxy(annotationMethodMap.values());
-            }
+
         }
     }
 

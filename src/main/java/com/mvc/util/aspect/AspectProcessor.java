@@ -16,9 +16,7 @@ import com.mvc.util.injection.DependencyInjectProcessor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
@@ -45,54 +43,77 @@ public class AspectProcessor {
     private static final Map<Class<?>,MethodInfo> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
 
     /**
+     * 类和其内所有带切面注解的方法的映射
+     */
+    private static final Map<Class<?>,List<MethodInfo>> CLASS_METHOD_MAP = new ConcurrentHashMap<>();
+
+    /**
      * 解析execution表达式
      * @param clazz Class Object
      *  1.jdk动态代理
      *  2.cglib动态代理
      *  3.javassist动态代理
      */
-    public static void process(Class<?> clazz){
+    public static void process(Class<?> clazz) {
         if(clazz.isAnnotationPresent(Aspect.class)){
             Method[] declaredMethods = clazz.getDeclaredMethods();
-            String methodName;
+            String adviceMethod;
             for(Method m:declaredMethods){
-                methodName = clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName();
+                adviceMethod = clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName();
                 if(m.isAnnotationPresent(Before.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(Before.class).value(),methodName,AdviceEnum.Before);
+                    MethodInfo info = parseExpression(m.getAnnotation(Before.class).value(),adviceMethod,AdviceEnum.Before);
                     if(Objects.nonNull(info)){
-                        createProxy(methodName,info, AdviceEnum.Before);
+                        buildClassMethodMap(info);
                     }
                 }else if(m.isAnnotationPresent(Around.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(Around.class).value(), methodName,
-                            AdviceEnum.Around);
+                    MethodInfo info = parseExpression(m.getAnnotation(Around.class).value(), adviceMethod, AdviceEnum.Around);
                     if(Objects.nonNull(info)){
-                        createProxy(methodName,info, AdviceEnum.Around);
+                        buildClassMethodMap(info);
                     }
                 }else if(m.isAnnotationPresent(After.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(After.class).value(), methodName,
+                    MethodInfo info = parseExpression(m.getAnnotation(After.class).value(), adviceMethod,
                             AdviceEnum.After);
                     if(Objects.nonNull(info)){
-                        createProxy(methodName,info, AdviceEnum.After);
+                        buildClassMethodMap(info);
                     }
                 }else if(m.isAnnotationPresent(AfterReturning.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(AfterReturning.class).value(), methodName,
-                            AdviceEnum.AfterReturning);
+                    MethodInfo info = parseExpression(m.getAnnotation(AfterReturning.class).value(),
+                            adviceMethod, AdviceEnum.AfterReturning);
                     if(Objects.nonNull(info)){
-                        createProxy(methodName,info, AdviceEnum.AfterReturning);
+                        buildClassMethodMap(info);
                     }
                 }else if(m.isAnnotationPresent(AfterThrowing.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(AfterThrowing.class).value(), methodName,
-                            AdviceEnum.AfterThrowing);
+                    MethodInfo info = parseExpression(m.getAnnotation(AfterThrowing.class).value(),
+                            adviceMethod, AdviceEnum.AfterThrowing);
                     if(Objects.nonNull(info)){
-                        createProxy(methodName,info, AdviceEnum.AfterThrowing);
+                        buildClassMethodMap(info);
                     }
                 }
             }
         }
     }
 
+    private static void buildClassMethodMap(MethodInfo info){
+        try{
+            String methodName = info.getMethodName();
+            Class<?> key = Class.forName(methodName.substring(0, methodName.lastIndexOf(PATH_SEPARATOR)));
+            List<MethodInfo> methods = CLASS_METHOD_MAP.get(key);
+            if(Objects.isNull(methods)){
+                methods = new ArrayList<>();
+            }
+            methods.add(info);
+            CLASS_METHOD_MAP.put(key,methods);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
     public static boolean reInjected(){
-        return !CLASS_IMPL_INTERFACES_MAP.isEmpty() || !ANNOTATION_METHOD_MAP.isEmpty();
+        return !CLASS_IMPL_INTERFACES_MAP.isEmpty();
+    }
+
+    public static boolean rescan(){
+        return !ANNOTATION_METHOD_MAP.isEmpty();
     }
 
     public static Map<String,Class<?>[]> getReInjected(){
@@ -124,9 +145,9 @@ public class AspectProcessor {
         return null;
     }
 
-    private static void createProxy(String proxyMethod, MethodInfo info, AdviceEnum adviceEnum){
+    private static void createProxy(String proxyMethod, List<MethodInfo> list, AdviceEnum adviceEnum){
         try {
-            String targetMethod = info.getMethodName();
+            String targetMethod = list.get(0).getMethodName();
             Class<?> targetClass = Class.forName(targetMethod.substring(0, targetMethod.lastIndexOf(PATH_SEPARATOR)));
             Object target = DependencyInjectProcessor.getInstance(targetClass);
 
@@ -134,7 +155,7 @@ public class AspectProcessor {
                 //判断是否已经创建过代理
                 if(targetClass != target.getClass()){
                     //已经创建过代理类
-                    PROXY_JOIN_POINT_MAP.get(target.getClass()).setMethod(adviceEnum,info,proxyMethod);
+                    PROXY_JOIN_POINT_MAP.get(target.getClass()).setMethod(adviceEnum,list,proxyMethod);
                     return;
                 }
 
@@ -157,23 +178,23 @@ public class AspectProcessor {
                 switch (adviceEnum){
                     case Before:
                         methods[0] = proxyMethod;
-                        proxy = createProxy(target,info,methods,classLoader,interfaces,jdkProxy);
+                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
                         break;
                     case Around:
                         methods[0] = proxyMethod;
-                        proxy = createAroundProxy(target,info,methods,classLoader,interfaces,jdkProxy);
+                        proxy = createAroundProxy(target,list,methods,classLoader,interfaces,jdkProxy);
                         break;
                     case AfterReturning:
                         methods[2] = proxyMethod;
-                        proxy = createProxy(target,info,methods,classLoader,interfaces,jdkProxy);
+                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
                         break;
                     case AfterThrowing:
                         methods[3] = proxyMethod;
-                        proxy = createProxy(target,info,methods,classLoader,interfaces,jdkProxy);
+                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
                         break;
                     case After:
                         methods[1] = proxyMethod;
-                        proxy = createProxy(target,info,methods,classLoader,interfaces,jdkProxy);
+                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
                         break;
                     default:
                         throw new IllegalStateException("Unexpected value: " + adviceEnum);
@@ -188,8 +209,8 @@ public class AspectProcessor {
         }
     }
 
-    private static Object createProxy(Object target, MethodInfo info, String[] methods, ClassLoader classLoader,
-                                    Class<?>[] interfaces, boolean jdkProxy){
+    private static Object createProxy(Object target, List<MethodInfo> info, String[] methods, ClassLoader classLoader,
+                                      Class<?>[] interfaces, boolean jdkProxy){
         Object proxy;
         if(jdkProxy){
             JdkProxy proxyClass = new JdkProxy(target,info,methods, true);
@@ -203,8 +224,8 @@ public class AspectProcessor {
         return proxy;
     }
 
-    private static Object createAroundProxy(Object target, MethodInfo info, String[] methods, ClassLoader classLoader,
-                                      Class<?>[] interfaces, boolean jdkProxy){
+    private static Object createAroundProxy(Object target, List<MethodInfo> info, String[] methods, ClassLoader classLoader,
+                                            Class<?>[] interfaces, boolean jdkProxy){
         Object proxy;
         if(jdkProxy){
             JdkProxy proxyClass = new JdkAroundProxy(target,info,methods, true);
@@ -223,12 +244,15 @@ public class AspectProcessor {
      * @param execution execution表达式
      * eg:[public String com.mvc.Class.method(pType pName...)]
      */
-    private static MethodInfo parseExpression(String execution, String methodName, AdviceEnum adviceEnum) {
+    private static MethodInfo parseExpression(String execution, String adviceMethod, AdviceEnum adviceEnum) {
         if(!execution.isEmpty()){
             if(execution.startsWith(ConstantPool.EXECUTION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
-                return parseExecutionExpression(execution);
+                MethodInfo info = parseExecutionExpression(execution);
+                info.setAdviceMethod(adviceMethod);
+                info.setAdviceEnum(adviceEnum);
+                return info;
             }else if(execution.startsWith(ConstantPool.ANNOTATION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
-                parseAnnotationExpression(execution,methodName,adviceEnum);
+                parseAnnotationExpression(execution,adviceMethod,adviceEnum);
             }
         }
         return null;
@@ -311,6 +335,9 @@ public class AspectProcessor {
     }
 
     public static void createProxy(Collection<MethodInfo> methods) {
-        methods.forEach(e -> createProxy(e.getAdviceMethod(),e, e.getAdviceEnum()));
+        methods.forEach(AspectProcessor::buildClassMethodMap);
+        CLASS_METHOD_MAP.forEach((k,v) -> {
+
+        });
     }
 }

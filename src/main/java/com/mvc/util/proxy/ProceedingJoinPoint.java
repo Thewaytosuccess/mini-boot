@@ -7,6 +7,7 @@ import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,21 +61,22 @@ public class ProceedingJoinPoint {
         }
     }
 
-    public void setMethod(AdviceEnum adviceEnum, MethodInfo info, String proxyMethod){
+    public void setMethod(AdviceEnum adviceEnum, List<MethodInfo> methods, String proxyMethod){
         switch (adviceEnum){
             case Before:
-                if(Objects.isNull(BEFORE_MAP.get(info))){
-                    BEFORE_MAP.put(info,proxyMethod);
+                //remove duplicate
+                if(Objects.isNull(BEFORE_MAP.get(methods.get(0)))){
+                    methods.forEach(e -> BEFORE_MAP.put(e,proxyMethod));
                 }
                 break;
             case After:
-                AFTER_MAP.put(info,proxyMethod);
+                methods.forEach(e -> AFTER_MAP.put(e,proxyMethod));
                 break;
             case AfterReturning:
-                AFTER_RETURNING_MAP.put(info,proxyMethod);
+                methods.forEach(e -> AFTER_RETURNING_MAP.put(e,proxyMethod));
                 break;
             case AfterThrowing:
-                AFTER_THROWING_MAP.put(info,proxyMethod);
+                methods.forEach(e -> AFTER_THROWING_MAP.put(e,proxyMethod));
                 break;
             case Around:
                 break;
@@ -83,27 +85,31 @@ public class ProceedingJoinPoint {
         }
     }
 
-    protected ProceedingJoinPoint(Object target, MethodInfo info, String[] methods, boolean jdkProxy){
+    protected ProceedingJoinPoint(Object target, List<MethodInfo> info, String[] methods, boolean jdkProxy){
         this.target = target;
         this.jdkProxy = jdkProxy;
         String method = methods[0];
         if(Objects.nonNull(method) && !method.isEmpty()){
-            BEFORE_MAP.put(info,method);
+            String finalMethod = method;
+            info.forEach(e -> BEFORE_MAP.put(e, finalMethod));
         }
 
         method = methods[1];
         if(Objects.nonNull(method) && !method.isEmpty()){
-            AFTER_MAP.put(info,method);
+            String finalMethod = method;
+            info.forEach(e -> AFTER_MAP.put(e, finalMethod));
         }
 
         method = methods[2];
         if(Objects.nonNull(method) && !method.isEmpty()){
-            AFTER_RETURNING_MAP.put(info,method);
+            String finalMethod = method;
+            info.forEach(e -> AFTER_RETURNING_MAP.put(e, finalMethod));
         }
 
         method = methods[3];
         if(Objects.nonNull(method) && !method.isEmpty()){
-            AFTER_THROWING_MAP.put(info,method);
+            String finalMethod = method;
+            info.forEach(e -> AFTER_THROWING_MAP.put(e, finalMethod));
         }
     }
 
