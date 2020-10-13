@@ -61,6 +61,7 @@ public class HandlerMapping {
         CLASSES.forEach(HandlerMapping::aspectScan);
         //5.判断是否需要重新注入
         reInject();
+        reInject();
         print();
     }
 
@@ -78,28 +79,34 @@ public class HandlerMapping {
                     e.printStackTrace();
                 }
             });
-            CLASSES.forEach(e -> reInject(e,classes));
+            if(!classes.isEmpty()){
+                //将代理对象重新注入到依赖它的类中
+                CLASSES.forEach(e -> reInject(e,classes));
+            }
 
+            //为注解的方法生成代理
             Map<Class<? extends Annotation>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
-            Set<Class<? extends Annotation>> annotations = annotationMethodMap.keySet();
-
-            Map<String,Class<? extends Annotation>> map = new ConcurrentHashMap<>(16);
-            CLASSES.forEach(e -> getMethodAnnotated(e,annotations,map));
-            List<MethodInfo> methods = new ArrayList<>();
-            map.forEach((k,v) -> methods.add(annotationMethodMap.get(v).setMethodName(k)));
-            AspectProcessor.createProxy(methods);
+            if(!annotationMethodMap.isEmpty()){
+                Set<Class<? extends Annotation>> annotations = annotationMethodMap.keySet();
+                CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap));
+                AspectProcessor.createProxy(annotationMethodMap.values());
+            }
         }
     }
 
-    private static void getMethodAnnotated(String className, Set<Class<? extends Annotation>> annotations,
-                                           Map<String, Class<? extends Annotation>> map) {
+    private static void getAnnotatedMethod(String className, Set<Class<? extends Annotation>> annotations,
+                                           Map<Class<? extends Annotation>, MethodInfo> annotationMethodMap) {
         try {
             Class<?> clazz = Class.forName(className);
             Method[] declaredMethods = clazz.getDeclaredMethods();
+            MethodInfo info;
             for(Method m:declaredMethods){
                 for(Class<? extends Annotation> a:annotations){
                     if(m.isAnnotationPresent(a)){
-                        map.put(className + PATH_SEPARATOR + m.getName(),a);
+                        info = annotationMethodMap.get(a);
+                        info.setMethodName(className + PATH_SEPARATOR + m.getName());
+                        info.setParameterTypes(m.getParameterTypes());
+                        info.setParameterCount(m.getParameterCount());
                     }
                 }
             }

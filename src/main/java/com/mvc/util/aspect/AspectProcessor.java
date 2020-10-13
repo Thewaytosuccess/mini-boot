@@ -17,7 +17,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -148,6 +148,9 @@ public class AspectProcessor {
                 }
 
                 //建立实现类和接口的映射
+                if(!ANNOTATION_METHOD_MAP.isEmpty()){
+                    CLASS_IMPL_INTERFACES_MAP.clear();
+                }
                 CLASS_IMPL_INTERFACES_MAP.put(targetClass.getName(),interfaces);
                 String[] methods = new String[4];
                 //创建代理对象
@@ -309,7 +312,7 @@ public class AspectProcessor {
         }
     }
 
-    public static void createProxy(List<MethodInfo> methods) {
+    public static void createProxy(Collection<MethodInfo> methods) {
         if(methods.isEmpty()){
             return;
         }
@@ -317,16 +320,19 @@ public class AspectProcessor {
         for(MethodInfo e:methods){
             switch (e.getAdviceEnum()){
                 case Before:
-                    //todo
-                    //createProxy(e.getAdviceMethod(),info, AdviceEnum.Before);
+                    createProxy(e.getAdviceMethod(),e, AdviceEnum.Before);
                     break;
                 case Around:
+                    createProxy(e.getAdviceMethod(),e, AdviceEnum.Around);
                     break;
                 case AfterReturning:
+                    createProxy(e.getAdviceMethod(),e, AdviceEnum.AfterReturning);
                     break;
                 case AfterThrowing:
+                    createProxy(e.getAdviceMethod(),e, AdviceEnum.AfterThrowing);
                     break;
                 case After:
+                    createProxy(e.getAdviceMethod(),e, AdviceEnum.After);
                     break;
                 default:
                     throw new IllegalStateException("Unexpected value: " + e.getAdviceEnum());
