@@ -313,31 +313,6 @@ public class AspectProcessor {
     }
 
     public static void createProxy(Collection<MethodInfo> methods) {
-        if(methods.isEmpty()){
-            return;
-        }
-
-        for(MethodInfo e:methods){
-            switch (e.getAdviceEnum()){
-                case Before:
-                    createProxy(e.getAdviceMethod(),e, AdviceEnum.Before);
-                    break;
-                case Around:
-                    createProxy(e.getAdviceMethod(),e, AdviceEnum.Around);
-                    break;
-                case AfterReturning:
-                    createProxy(e.getAdviceMethod(),e, AdviceEnum.AfterReturning);
-                    break;
-                case AfterThrowing:
-                    createProxy(e.getAdviceMethod(),e, AdviceEnum.AfterThrowing);
-                    break;
-                case After:
-                    createProxy(e.getAdviceMethod(),e, AdviceEnum.After);
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected value: " + e.getAdviceEnum());
-            }
-        }
-
+        methods.forEach(e -> createProxy(e.getAdviceMethod(),e, e.getAdviceEnum()));
     }
 }
