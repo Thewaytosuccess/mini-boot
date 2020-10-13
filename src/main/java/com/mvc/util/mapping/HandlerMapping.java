@@ -61,7 +61,7 @@ public class HandlerMapping {
         CLASSES.forEach(HandlerMapping::aspectScan);
         //5.判断是否需要重新注入
         reInject();
-        reInject();
+        //reInject();
         print();
     }
 
@@ -85,25 +85,27 @@ public class HandlerMapping {
             }
 
             //为注解的方法生成代理
-            Map<Class<? extends Annotation>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
+            Map<Class<?>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
             if(!annotationMethodMap.isEmpty()){
-                Set<Class<? extends Annotation>> annotations = annotationMethodMap.keySet();
+                Set<Class<?>> annotations = annotationMethodMap.keySet();
                 CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap));
                 AspectProcessor.createProxy(annotationMethodMap.values());
             }
         }
     }
 
-    private static void getAnnotatedMethod(String className, Set<Class<? extends Annotation>> annotations,
-                                           Map<Class<? extends Annotation>, MethodInfo> annotationMethodMap) {
+    private static void getAnnotatedMethod(String className, Set<Class<?>> annotations,
+                                           Map<Class<?>, MethodInfo> annotationMethodMap) {
         try {
             Class<?> clazz = Class.forName(className);
             Method[] declaredMethods = clazz.getDeclaredMethods();
             MethodInfo info;
+            Annotation[] declaredAnnotations;
             for(Method m:declaredMethods){
-                for(Class<? extends Annotation> a:annotations){
-                    if(m.isAnnotationPresent(a)){
-                        info = annotationMethodMap.get(a);
+                declaredAnnotations = m.getDeclaredAnnotations();
+                for(Annotation a:declaredAnnotations){
+                    if(annotations.contains(a.annotationType())){
+                        info = annotationMethodMap.get(a.annotationType());
                         info.setMethodName(className + PATH_SEPARATOR + m.getName());
                         info.setParameterTypes(m.getParameterTypes());
                         info.setParameterCount(m.getParameterCount());

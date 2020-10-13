@@ -13,7 +13,6 @@ import com.mvc.util.proxy.jdk.JdkProxy;
 import com.mvc.util.proxy.jdk.JdkAroundProxy;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
@@ -43,7 +42,7 @@ public class AspectProcessor {
     /**
      * 注解和切面方法的映射
      */
-    private static final Map<Class<? extends Annotation>,MethodInfo> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
+    private static final Map<Class<?>,MethodInfo> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
 
     /**
      * 解析execution表达式
@@ -100,7 +99,7 @@ public class AspectProcessor {
         return CLASS_IMPL_INTERFACES_MAP;
     }
 
-    public static Map<Class<? extends Annotation>,MethodInfo> getAnnotationMethodMap(){ return ANNOTATION_METHOD_MAP; }
+    public static Map<Class<?>,MethodInfo> getAnnotationMethodMap(){ return ANNOTATION_METHOD_MAP; }
 
     public static String getClassImpl(Class<?> interfaceClass){
         //jdk proxy
@@ -258,25 +257,24 @@ public class AspectProcessor {
     }
 
     private static void parseAnnotationExpression(String execution, String methodName, AdviceEnum adviceEnum) {
-        execution = execution.substring(execution.indexOf(ConstantPool.ANNOTATION_PREFIX + 1), execution.length() - 1);
+        execution = execution.substring(12, execution.length() - 1);
         if(execution.isEmpty()){
             throw new IllegalArgumentException();
         }
 
         try {
             //扫描包含此注解的方法创建aop代理
-            Object obj = Class.forName(execution).newInstance();
-            if(obj instanceof Annotation){
-                Annotation a = (Annotation)obj;
+            Class<?> clazz = Class.forName(execution);
+            if(clazz.isAnnotation()){
                 MethodInfo info = new MethodInfo();
                 info.setAdviceMethod(methodName);
                 info.setAdviceEnum(adviceEnum);
-                ANNOTATION_METHOD_MAP.put(a.annotationType(),info);
+                ANNOTATION_METHOD_MAP.put(clazz,info);
             }else{
                 throw new IllegalArgumentException();
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException();
+            e.printStackTrace();
         }
     }
 

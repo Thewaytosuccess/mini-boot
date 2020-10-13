@@ -114,7 +114,7 @@ public class ProceedingJoinPoint {
             Object[] args = new Object[]{this};
             return handle(methodName, argTypes, args);
         }else{
-            System.out.println("proxy method name = "+method.getName());
+            System.out.println("method not found in proxy map = "+method.getName());
         }
         return null;
     }
@@ -125,7 +125,7 @@ public class ProceedingJoinPoint {
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             handle(methodName);
         }else{
-            System.out.println("proxy method name = "+method.getName());
+            System.out.println("method not found in proxy map = "+method.getName());
         }
 
         Object result = null;

@@ -12,24 +12,29 @@ import com.mvc.util.proxy.ProceedingJoinPoint;
 @Aspect
 public class AdviceService {
 
-    @Before(execution = "public com.mvc.controller.UserController.logout(..)")
+    @Before("@annotation(com.mvc.annotation.test.AccessGranted)")
     public void testBefore(){
-        System.out.println("this is a test for before advice, ha ha=====");
+        System.out.println("this is a test for [before annotation advice]");
     }
 
-    @After(execution = "public com.mvc.controller.UserController.logout(..)")
-    public void testAfter(){
-        System.out.println("this is a test for after advice, hello world =====");
-    }
-
-    @Around(execution = "public com.mvc.controller.UserController.logout(..)")
-    public Object testAround(ProceedingJoinPoint point){
-        System.out.println("this is a test for before cglib advice =====");
-        Object result = point.proceed();
-        System.out.println("result ===="+ result);
-        System.out.println("this is a test for after cglib advice =====");
-        return result;
-    }
+//    @Before("public com.mvc.controller.UserController.logout(..)")
+//    public void testBefore(){
+//        System.out.println("this is a test for before advice, ha ha=====");
+//    }
+//
+//    @After("public com.mvc.controller.UserController.logout(..)")
+//    public void testAfter(){
+//        System.out.println("this is a test for after advice, hello world =====");
+//    }
+//
+//    @Around("public com.mvc.controller.UserController.logout(..)")
+//    public Object testAround(ProceedingJoinPoint point){
+//        System.out.println("this is a test for before cglib advice =====");
+//        Object result = point.proceed();
+//        System.out.println("result ===="+ result);
+//        System.out.println("this is a test for after cglib advice =====");
+//        return result;
+//    }
 
 //    @AfterReturning(execution = "public com.mvc.service.impl.UserServiceImpl.getDataSourceConfig(..)")
 //    public void testAfter(){

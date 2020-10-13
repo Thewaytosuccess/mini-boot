@@ -31,7 +31,7 @@ public class MethodInfo {
 
     private Class<?>[] parameterTypes;
 
-    private boolean compared = true;
+    private boolean compared = false;
 
     private List<Param> params;
 

@@ -9,6 +9,7 @@ import com.mvc.annotation.method.PostMapping;
 import com.mvc.annotation.method.RequestMapping;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
+import com.mvc.annotation.test.AccessGranted;
 import com.mvc.annotation.type.RestController;
 import com.mvc.entity.test.User;
 import com.mvc.service.UserService;
@@ -44,6 +45,7 @@ public class UserController {
     }
 
     @RequestMapping("/logout")
+    @AccessGranted
     public Object logout(){
         return userService.getDataSourceConfig();
     }
