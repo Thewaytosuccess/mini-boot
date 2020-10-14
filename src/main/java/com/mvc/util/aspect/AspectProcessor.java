@@ -145,18 +145,23 @@ public class AspectProcessor {
         return null;
     }
 
-    private static void createProxy(String proxyMethod, List<MethodInfo> list, AdviceEnum adviceEnum){
+    private static void createProxy(Class<?> targetClass,List<MethodInfo> list){
         try {
-            String targetMethod = list.get(0).getMethodName();
-            Class<?> targetClass = Class.forName(targetMethod.substring(0, targetMethod.lastIndexOf(PATH_SEPARATOR)));
             Object target = DependencyInjectProcessor.getInstance(targetClass);
-
             if(Objects.nonNull(target)){
                 //判断是否已经创建过代理
                 if(targetClass != target.getClass()){
                     //已经创建过代理类
-                    PROXY_JOIN_POINT_MAP.get(target.getClass()).setMethod(adviceEnum,list,proxyMethod);
+                    PROXY_JOIN_POINT_MAP.get(target.getClass()).setMethod(list);
                     return;
+                }
+
+                boolean flag = false;
+                for(MethodInfo e:list){
+                    if(e.getAdviceEnum() == AdviceEnum.Around){
+                        flag = true;
+                        break;
+                    }
                 }
 
                 boolean jdkProxy = false;
@@ -168,37 +173,15 @@ public class AspectProcessor {
                 }
 
                 //建立实现类和接口的映射
-                if(!ANNOTATION_METHOD_MAP.isEmpty()){
-                    CLASS_IMPL_INTERFACES_MAP.clear();
-                }
                 CLASS_IMPL_INTERFACES_MAP.put(targetClass.getName(),interfaces);
-                String[] methods = new String[4];
                 //创建代理对象
                 Object proxy;
-                switch (adviceEnum){
-                    case Before:
-                        methods[0] = proxyMethod;
-                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
-                        break;
-                    case Around:
-                        methods[0] = proxyMethod;
-                        proxy = createAroundProxy(target,list,methods,classLoader,interfaces,jdkProxy);
-                        break;
-                    case AfterReturning:
-                        methods[2] = proxyMethod;
-                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
-                        break;
-                    case AfterThrowing:
-                        methods[3] = proxyMethod;
-                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
-                        break;
-                    case After:
-                        methods[1] = proxyMethod;
-                        proxy = createProxy(target,list,methods,classLoader,interfaces,jdkProxy);
-                        break;
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + adviceEnum);
+                if(flag){
+                    proxy = createAroundProxy(target,list,classLoader,interfaces,jdkProxy);
+                }else{
+                    proxy = createProxy(target,list,classLoader,interfaces,jdkProxy);
                 }
+
                 //将代理对象注入到ioc容器
                 DependencyInjectProcessor.replace(targetClass,proxy);
             }else{
@@ -209,30 +192,30 @@ public class AspectProcessor {
         }
     }
 
-    private static Object createProxy(Object target, List<MethodInfo> info, String[] methods, ClassLoader classLoader,
+    private static Object createProxy(Object target, List<MethodInfo> info, ClassLoader classLoader,
                                       Class<?>[] interfaces, boolean jdkProxy){
         Object proxy;
         if(jdkProxy){
-            JdkProxy proxyClass = new JdkProxy(target,info,methods, true);
+            JdkProxy proxyClass = new JdkProxy(target,info,true);
             proxy = Proxy.newProxyInstance(classLoader, interfaces, proxyClass);
             PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
         }else{
-            CglibProxy proxyClass = new CglibProxy(target,info,methods, false);
+            CglibProxy proxyClass = new CglibProxy(target,info, false);
             proxy = proxyClass.getProxy();
             PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
         }
         return proxy;
     }
 
-    private static Object createAroundProxy(Object target, List<MethodInfo> info, String[] methods, ClassLoader classLoader,
+    private static Object createAroundProxy(Object target, List<MethodInfo> methods, ClassLoader classLoader,
                                             Class<?>[] interfaces, boolean jdkProxy){
         Object proxy;
         if(jdkProxy){
-            JdkProxy proxyClass = new JdkAroundProxy(target,info,methods, true);
+            JdkProxy proxyClass = new JdkAroundProxy(target,methods, true);
             proxy = Proxy.newProxyInstance(classLoader, interfaces, proxyClass);
             PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
         }else{
-            CglibProxy proxyClass = new CglibAroundProxy(target,info,methods, false);
+            CglibProxy proxyClass = new CglibAroundProxy(target,methods, false);
             proxy = proxyClass.getProxy();
             PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
         }
@@ -334,10 +317,8 @@ public class AspectProcessor {
         }
     }
 
-    public static void createProxy(Collection<MethodInfo> methods) {
+    public static void createProxy(List<MethodInfo> methods) {
         methods.forEach(AspectProcessor::buildClassMethodMap);
-        CLASS_METHOD_MAP.forEach((k,v) -> {
-
-        });
+        CLASS_METHOD_MAP.forEach(AspectProcessor::createProxy);
     }
 }

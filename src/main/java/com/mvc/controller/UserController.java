@@ -30,6 +30,7 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/get")
+    @AccessGranted
     public Object getUser(){
         return "get:username="+username;
     }

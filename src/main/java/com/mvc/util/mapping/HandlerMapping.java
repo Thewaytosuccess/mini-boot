@@ -72,8 +72,10 @@ public class HandlerMapping {
             Map<Class<?>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
             if(!annotationMethodMap.isEmpty()){
                 Set<Class<?>> annotations = annotationMethodMap.keySet();
-                CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap));
-                AspectProcessor.createProxy(annotationMethodMap.values());
+                List<MethodInfo> methods = new ArrayList<>();
+                CLASSES.forEach(e -> methods.addAll(getAnnotatedMethod(e,annotations,annotationMethodMap)));
+
+                AspectProcessor.createProxy(methods);
             }
         }
     }
@@ -96,16 +98,14 @@ public class HandlerMapping {
                 //将代理对象重新注入到依赖它的类中
                 CLASSES.forEach(e -> reInject(e,classes));
             }
-
-
         }
     }
 
-    private static void getAnnotatedMethod(String className, Set<Class<?>> annotations,
-                                           Map<Class<?>, MethodInfo> annotationMethodMap) {
+    private static Set<MethodInfo> getAnnotatedMethod(String className, Set<Class<?>> annotations,
+                                                       Map<Class<?>, MethodInfo> annotationMethodMap) {
+        Set<MethodInfo> methods = new HashSet<>();
         try {
-            Class<?> clazz = Class.forName(className);
-            Method[] declaredMethods = clazz.getDeclaredMethods();
+            Method[] declaredMethods = Class.forName(className).getDeclaredMethods();
             MethodInfo info;
             Annotation[] declaredAnnotations;
             for(Method m:declaredMethods){
@@ -116,12 +116,16 @@ public class HandlerMapping {
                         info.setMethodName(className + PATH_SEPARATOR + m.getName());
                         info.setParameterTypes(m.getParameterTypes());
                         info.setParameterCount(m.getParameterCount());
+                        methods.add(info);
+                        break;
                     }
                 }
             }
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+
+        return methods;
     }
 
     private static void reInject(String className, Set<Class<?>> classes){

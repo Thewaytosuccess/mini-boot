@@ -12,9 +12,13 @@ import com.mvc.util.proxy.ProceedingJoinPoint;
 @Aspect
 public class AdviceService {
 
-    @Before("@annotation(com.mvc.annotation.test.AccessGranted)")
-    public void testBefore(){
-        System.out.println("this is a test for [before annotation advice]");
+    @Around("@annotation(com.mvc.annotation.test.AccessGranted)")
+    public Object testBefore(ProceedingJoinPoint point){
+        System.out.println("before advice");
+        Object proceed = point.proceed();
+        System.out.println("result = "+ proceed);
+        System.out.println("after advice");
+        return proceed;
     }
 
 //    @Before("public com.mvc.controller.UserController.logout(..)")

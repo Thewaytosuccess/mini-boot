@@ -17,8 +17,8 @@ public class CglibProxy extends ProceedingJoinPoint implements MethodInterceptor
 
     private final Enhancer enhancer = new Enhancer();
 
-    public CglibProxy(Object target, List<MethodInfo> info, String[] methods, boolean jdkProxy) {
-        super(target, info, methods, jdkProxy);
+    public CglibProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+        super(target, info, jdkProxy);
     }
 
     /**

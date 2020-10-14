@@ -12,8 +12,8 @@ import java.util.List;
  */
 public class JdkProxy extends ProceedingJoinPoint implements InvocationHandler {
 
-    public JdkProxy(Object target, List<MethodInfo> info, String[] methods, boolean jdkProxy) {
-        super(target, info, methods, jdkProxy);
+    public JdkProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+        super(target, info, jdkProxy);
     }
 
     @Override

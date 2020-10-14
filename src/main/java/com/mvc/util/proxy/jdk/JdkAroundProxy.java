@@ -10,8 +10,8 @@ import java.util.List;
  */
 public class JdkAroundProxy extends JdkProxy {
 
-    public JdkAroundProxy(Object target, List<MethodInfo> info, String[] methods, boolean jdkProxy) {
-        super(target, info, methods, jdkProxy);
+    public JdkAroundProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+        super(target, info, jdkProxy);
     }
 
     @Override

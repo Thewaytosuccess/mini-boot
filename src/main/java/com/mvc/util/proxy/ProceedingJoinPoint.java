@@ -61,56 +61,38 @@ public class ProceedingJoinPoint {
         }
     }
 
-    public void setMethod(AdviceEnum adviceEnum, List<MethodInfo> methods, String proxyMethod){
-        switch (adviceEnum){
-            case Before:
-                //remove duplicate
-                if(Objects.isNull(BEFORE_MAP.get(methods.get(0)))){
-                    methods.forEach(e -> BEFORE_MAP.put(e,proxyMethod));
-                }
-                break;
-            case After:
-                methods.forEach(e -> AFTER_MAP.put(e,proxyMethod));
-                break;
-            case AfterReturning:
-                methods.forEach(e -> AFTER_RETURNING_MAP.put(e,proxyMethod));
-                break;
-            case AfterThrowing:
-                methods.forEach(e -> AFTER_THROWING_MAP.put(e,proxyMethod));
-                break;
-            case Around:
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + adviceEnum);
-        }
+    public void setMethod(List<MethodInfo> methods){
+        methods.forEach(e -> {
+            switch (e.getAdviceEnum()){
+                case Before:
+                    //remove duplicate
+                    if(Objects.isNull(BEFORE_MAP.get(e))){
+                        BEFORE_MAP.put(e,e.getAdviceMethod());
+                    }
+                    break;
+                case After:
+                    AFTER_MAP.put(e,e.getAdviceMethod());
+                    break;
+                case AfterReturning:
+                    AFTER_RETURNING_MAP.put(e,e.getAdviceMethod());
+                    break;
+                case AfterThrowing:
+                    AFTER_THROWING_MAP.put(e,e.getAdviceMethod());
+                    break;
+                case Around:
+                    BEFORE_MAP.put(e,e.getAdviceMethod());
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + e.getAdviceEnum());
+            }
+        });
+
     }
 
-    protected ProceedingJoinPoint(Object target, List<MethodInfo> info, String[] methods, boolean jdkProxy){
+    protected ProceedingJoinPoint(Object target, List<MethodInfo> list,boolean jdkProxy){
         this.target = target;
         this.jdkProxy = jdkProxy;
-        String method = methods[0];
-        if(Objects.nonNull(method) && !method.isEmpty()){
-            String finalMethod = method;
-            info.forEach(e -> BEFORE_MAP.put(e, finalMethod));
-        }
-
-        method = methods[1];
-        if(Objects.nonNull(method) && !method.isEmpty()){
-            String finalMethod = method;
-            info.forEach(e -> AFTER_MAP.put(e, finalMethod));
-        }
-
-        method = methods[2];
-        if(Objects.nonNull(method) && !method.isEmpty()){
-            String finalMethod = method;
-            info.forEach(e -> AFTER_RETURNING_MAP.put(e, finalMethod));
-        }
-
-        method = methods[3];
-        if(Objects.nonNull(method) && !method.isEmpty()){
-            String finalMethod = method;
-            info.forEach(e -> AFTER_THROWING_MAP.put(e, finalMethod));
-        }
+        setMethod(list);
     }
 
     protected Object preHandle(){
