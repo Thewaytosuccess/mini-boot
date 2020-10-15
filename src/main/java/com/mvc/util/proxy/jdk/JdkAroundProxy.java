@@ -1,6 +1,6 @@
 package com.mvc.util.proxy.jdk;
 
-import com.mvc.entity.method.MethodInfo;
+import com.mvc.entity.method.Signature;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.List;
  */
 public class JdkAroundProxy extends JdkProxy {
 
-    public JdkAroundProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+    public JdkAroundProxy(Object target, List<Signature> info, boolean jdkProxy) {
         super(target, info, jdkProxy);
     }
 

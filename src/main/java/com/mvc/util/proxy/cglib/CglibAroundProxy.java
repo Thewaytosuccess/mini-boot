@@ -1,6 +1,6 @@
 package com.mvc.util.proxy.cglib;
 
-import com.mvc.entity.method.MethodInfo;
+import com.mvc.entity.method.Signature;
 import net.sf.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Method;
@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class CglibAroundProxy extends CglibProxy {
 
-    public CglibAroundProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+    public CglibAroundProxy(Object target, List<Signature> info, boolean jdkProxy) {
         super(target, info, jdkProxy);
     }
 

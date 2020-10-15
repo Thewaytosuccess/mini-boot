@@ -1,6 +1,6 @@
 package com.mvc.util.proxy.jdk;
 
-import com.mvc.entity.method.MethodInfo;
+import com.mvc.entity.method.Signature;
 import com.mvc.util.proxy.ProceedingJoinPoint;
 
 import java.lang.reflect.InvocationHandler;
@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class JdkProxy extends ProceedingJoinPoint implements InvocationHandler {
 
-    public JdkProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+    public JdkProxy(Object target, List<Signature> info, boolean jdkProxy) {
         super(target, info, jdkProxy);
     }
 

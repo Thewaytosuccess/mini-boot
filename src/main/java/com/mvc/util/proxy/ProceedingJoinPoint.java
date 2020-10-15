@@ -1,7 +1,6 @@
 package com.mvc.util.proxy;
 
-import com.mvc.entity.method.MethodInfo;
-import com.mvc.enums.AdviceEnum;
+import com.mvc.entity.method.Signature;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.injection.DependencyInjectProcessor;
@@ -19,13 +18,13 @@ import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
  */
 public class ProceedingJoinPoint {
 
-    private static final Map<MethodInfo,String> BEFORE_MAP = new ConcurrentHashMap<>();
+    private static final Map<Signature,String> BEFORE_MAP = new ConcurrentHashMap<>();
 
-    private static final Map<MethodInfo,String> AFTER_MAP = new ConcurrentHashMap<>();
+    private static final Map<Signature,String> AFTER_MAP = new ConcurrentHashMap<>();
 
-    private static final Map<MethodInfo,String> AFTER_RETURNING_MAP = new ConcurrentHashMap<>();
+    private static final Map<Signature,String> AFTER_RETURNING_MAP = new ConcurrentHashMap<>();
 
-    private static final Map<MethodInfo,String> AFTER_THROWING_MAP = new ConcurrentHashMap<>();
+    private static final Map<Signature,String> AFTER_THROWING_MAP = new ConcurrentHashMap<>();
 
     /**
      * 被代理对象
@@ -61,7 +60,7 @@ public class ProceedingJoinPoint {
         }
     }
 
-    public void setMethod(List<MethodInfo> methods){
+    public void setMethod(List<Signature> methods){
         methods.forEach(e -> {
             switch (e.getAdviceEnum()){
                 case Before:
@@ -89,26 +88,25 @@ public class ProceedingJoinPoint {
 
     }
 
-    protected ProceedingJoinPoint(Object target, List<MethodInfo> list,boolean jdkProxy){
+    protected ProceedingJoinPoint(Object target, List<Signature> list,boolean jdkProxy){
         this.target = target;
         this.jdkProxy = jdkProxy;
         setMethod(list);
     }
 
     protected Object preHandle(){
-        String methodName = BEFORE_MAP.get(getMethodInfo());
-        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+        String proxyMethod = BEFORE_MAP.get(getMethodInfo());
+        if(Objects.nonNull(proxyMethod) && !proxyMethod.isEmpty()){
             Class<?>[] argTypes = new Class[]{this.getClass().getSuperclass().getSuperclass()};
             Object[] args = new Object[]{this};
-            return handle(methodName, argTypes, args);
+            return handle(proxyMethod, argTypes, args);
         }else{
-            System.out.println("method not found in proxy map = "+method.getName());
+            return proceed();
         }
-        return null;
     }
 
     protected Object handle(){
-        MethodInfo info = getMethodInfo();
+        Signature info = getMethodInfo();
         String methodName = BEFORE_MAP.get(info);
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             handle(methodName);
@@ -138,9 +136,8 @@ public class ProceedingJoinPoint {
         return result;
     }
 
-    private MethodInfo getMethodInfo() {
-        MethodInfo info = new MethodInfo();
-        info.setModifiers(method.getModifiers());
+    private Signature getMethodInfo() {
+        Signature info = new Signature();
         String classImpl = AspectProcessor.getClassImpl(method.getDeclaringClass());
         if(Objects.isNull(classImpl) || classImpl.isEmpty()){
             throw new RuntimeException();

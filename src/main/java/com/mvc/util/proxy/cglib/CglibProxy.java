@@ -1,6 +1,6 @@
 package com.mvc.util.proxy.cglib;
 
-import com.mvc.entity.method.MethodInfo;
+import com.mvc.entity.method.Signature;
 import com.mvc.util.proxy.ProceedingJoinPoint;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
@@ -17,7 +17,7 @@ public class CglibProxy extends ProceedingJoinPoint implements MethodInterceptor
 
     private final Enhancer enhancer = new Enhancer();
 
-    public CglibProxy(Object target, List<MethodInfo> info, boolean jdkProxy) {
+    public CglibProxy(Object target, List<Signature> info, boolean jdkProxy) {
         super(target, info, jdkProxy);
     }
 

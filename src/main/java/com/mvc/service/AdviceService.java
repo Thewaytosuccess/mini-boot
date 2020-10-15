@@ -14,10 +14,10 @@ public class AdviceService {
 
     @Around("@annotation(com.mvc.annotation.test.AccessGranted)")
     public Object testBefore(ProceedingJoinPoint point){
-        System.out.println("before advice");
+        System.out.println("before service");
         Object proceed = point.proceed();
         System.out.println("result = "+ proceed);
-        System.out.println("after advice");
+        System.out.println("after service");
         return proceed;
     }
 

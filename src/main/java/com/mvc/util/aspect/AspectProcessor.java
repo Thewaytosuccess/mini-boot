@@ -3,6 +3,7 @@ package com.mvc.util.aspect;
 import com.mvc.annotation.aop.advice.*;
 import com.mvc.annotation.aop.aspect.Aspect;
 import com.mvc.entity.method.MethodInfo;
+import com.mvc.entity.method.Signature;
 import com.mvc.enums.AdviceEnum;
 import com.mvc.enums.ModifiersEnum;
 import com.mvc.enums.constant.ConstantPool;
@@ -40,12 +41,12 @@ public class AspectProcessor {
     /**
      * 注解和切面方法的映射
      */
-    private static final Map<Class<?>,MethodInfo> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
+    private static final Map<Class<?>,Signature> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
 
     /**
      * 类和其内所有带切面注解的方法的映射
      */
-    private static final Map<Class<?>,List<MethodInfo>> CLASS_METHOD_MAP = new ConcurrentHashMap<>();
+    private static final Map<Class<?>,List<Signature>> CLASS_METHOD_MAP = new ConcurrentHashMap<>();
 
     /**
      * 解析execution表达式
@@ -93,15 +94,15 @@ public class AspectProcessor {
         }
     }
 
-    private static void buildClassMethodMap(MethodInfo info){
+    private static void buildClassMethodMap(Signature signature){
         try{
-            String methodName = info.getMethodName();
+            String methodName = signature.getMethodName();
             Class<?> key = Class.forName(methodName.substring(0, methodName.lastIndexOf(PATH_SEPARATOR)));
-            List<MethodInfo> methods = CLASS_METHOD_MAP.get(key);
+            List<Signature> methods = CLASS_METHOD_MAP.get(key);
             if(Objects.isNull(methods)){
                 methods = new ArrayList<>();
             }
-            methods.add(info);
+            methods.add(signature);
             CLASS_METHOD_MAP.put(key,methods);
         }catch (Exception e){
             e.printStackTrace();
@@ -120,7 +121,7 @@ public class AspectProcessor {
         return CLASS_IMPL_INTERFACES_MAP;
     }
 
-    public static Map<Class<?>,MethodInfo> getAnnotationMethodMap(){ return ANNOTATION_METHOD_MAP; }
+    public static Map<Class<?>,Signature> getAnnotationMethodMap(){ return ANNOTATION_METHOD_MAP; }
 
     public static String getClassImpl(Class<?> interfaceClass){
         //jdk proxy
@@ -145,7 +146,7 @@ public class AspectProcessor {
         return null;
     }
 
-    private static void createProxy(Class<?> targetClass,List<MethodInfo> list){
+    private static void createProxy(Class<?> targetClass,List<Signature> list){
         try {
             Object target = DependencyInjectProcessor.getInstance(targetClass);
             if(Objects.nonNull(target)){
@@ -157,7 +158,7 @@ public class AspectProcessor {
                 }
 
                 boolean flag = false;
-                for(MethodInfo e:list){
+                for(Signature e:list){
                     if(e.getAdviceEnum() == AdviceEnum.Around){
                         flag = true;
                         break;
@@ -192,7 +193,7 @@ public class AspectProcessor {
         }
     }
 
-    private static Object createProxy(Object target, List<MethodInfo> info, ClassLoader classLoader,
+    private static Object createProxy(Object target, List<Signature> info, ClassLoader classLoader,
                                       Class<?>[] interfaces, boolean jdkProxy){
         Object proxy;
         if(jdkProxy){
@@ -207,7 +208,7 @@ public class AspectProcessor {
         return proxy;
     }
 
-    private static Object createAroundProxy(Object target, List<MethodInfo> methods, ClassLoader classLoader,
+    private static Object createAroundProxy(Object target, List<Signature> methods, ClassLoader classLoader,
                                             Class<?>[] interfaces, boolean jdkProxy){
         Object proxy;
         if(jdkProxy){
@@ -273,7 +274,7 @@ public class AspectProcessor {
             //扫描包含此注解的方法创建aop代理
             Class<?> clazz = Class.forName(execution);
             if(clazz.isAnnotation()){
-                MethodInfo info = new MethodInfo();
+                Signature info = new Signature();
                 info.setAdviceMethod(methodName);
                 info.setAdviceEnum(adviceEnum);
                 ANNOTATION_METHOD_MAP.put(clazz,info);
@@ -295,6 +296,7 @@ public class AspectProcessor {
                     info.setParameterCount(0);
                     info.setCompared(false);
                 }else if(ConstantPool.ANY_PARAM.equals(param)){
+                    info.setParameterCount(-1);
                     info.setCompared(false);
                 }
             }else{
@@ -317,7 +319,8 @@ public class AspectProcessor {
         }
     }
 
-    public static void createProxy(List<MethodInfo> methods) {
+    public static void createProxy(List<Signature> methods) {
+        methods.forEach(System.out::println);
         methods.forEach(AspectProcessor::buildClassMethodMap);
         CLASS_METHOD_MAP.forEach(AspectProcessor::createProxy);
     }

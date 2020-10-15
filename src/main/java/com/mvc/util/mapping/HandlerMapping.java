@@ -8,6 +8,7 @@ import com.mvc.annotation.param.RequestParam;
 import com.mvc.annotation.type.*;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
+import com.mvc.entity.method.Signature;
 import com.mvc.enums.HttpMethodEnum;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.binding.DataBindingProcessor;
@@ -69,12 +70,11 @@ public class HandlerMapping {
     private static void createProxy() {
         if(AspectProcessor.rescan()){
             //为携带切面注解的方法生成代理
-            Map<Class<?>, MethodInfo> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
+            Map<Class<?>, Signature> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
             if(!annotationMethodMap.isEmpty()){
                 Set<Class<?>> annotations = annotationMethodMap.keySet();
-                List<MethodInfo> methods = new ArrayList<>();
-                CLASSES.forEach(e -> methods.addAll(getAnnotatedMethod(e,annotations,annotationMethodMap)));
-
+                List<Signature> methods = new ArrayList<>();
+                CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap, methods));
                 AspectProcessor.createProxy(methods);
             }
         }
@@ -101,22 +101,21 @@ public class HandlerMapping {
         }
     }
 
-    private static Set<MethodInfo> getAnnotatedMethod(String className, Set<Class<?>> annotations,
-                                                       Map<Class<?>, MethodInfo> annotationMethodMap) {
-        Set<MethodInfo> methods = new HashSet<>();
+    private static void getAnnotatedMethod(String className, Set<Class<?>> annotations,
+                                           Map<Class<?>, Signature> annotationMethodMap,
+                                           List<Signature> classes) {
         try {
             Method[] declaredMethods = Class.forName(className).getDeclaredMethods();
-            MethodInfo info;
+            Signature signature;
             Annotation[] declaredAnnotations;
             for(Method m:declaredMethods){
                 declaredAnnotations = m.getDeclaredAnnotations();
                 for(Annotation a:declaredAnnotations){
                     if(annotations.contains(a.annotationType())){
-                        info = annotationMethodMap.get(a.annotationType());
-                        info.setMethodName(className + PATH_SEPARATOR + m.getName());
-                        info.setParameterTypes(m.getParameterTypes());
-                        info.setParameterCount(m.getParameterCount());
-                        methods.add(info);
+                        signature = annotationMethodMap.get(a.annotationType());
+                        signature.setMethodName(className + PATH_SEPARATOR + m.getName());
+                        classes.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                                signature.getMethodName(),signature.getAdviceEnum(),signature.getAdviceMethod()));
                         break;
                     }
                 }
@@ -124,8 +123,6 @@ public class HandlerMapping {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-
-        return methods;
     }
 
     private static void reInject(String className, Set<Class<?>> classes){
