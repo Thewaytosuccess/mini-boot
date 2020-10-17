@@ -1,4 +1,4 @@
-package com.mvc.annotation.type;
+package com.mvc.annotation.type.controller;
 
 import java.lang.annotation.*;
 

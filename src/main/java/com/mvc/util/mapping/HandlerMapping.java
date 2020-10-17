@@ -5,17 +5,20 @@ import com.mvc.annotation.method.*;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.param.RequestParam;
-import com.mvc.annotation.type.*;
+import com.mvc.annotation.type.component.Component;
+import com.mvc.annotation.type.component.ComponentScan;
+import com.mvc.annotation.type.controller.Controller;
+import com.mvc.annotation.type.controller.RestController;
+import com.mvc.annotation.type.service.Service;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
-import com.mvc.entity.method.Signature;
 import com.mvc.enums.HttpMethodEnum;
+import com.mvc.util.aspect.AspectHandler;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
@@ -61,76 +64,16 @@ public class HandlerMapping {
         //4.切面扫描
         CLASSES.forEach(HandlerMapping::aspectScan);
         //5.判断是否需要创建代理
-        createProxy();
+        AspectHandler.createProxy();
         //6.判断是否需要重新注入代理
-        reInject();
+        AspectHandler.reInject();
+        //7.bean初始化
+        CLASSES.forEach(DependencyInjectProcessor::initialize);
         print();
     }
 
-    private static void createProxy() {
-        if(AspectProcessor.rescan()){
-            //为携带切面注解的方法生成代理
-            Map<Class<?>, Signature> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
-            if(!annotationMethodMap.isEmpty()){
-                Set<Class<?>> annotations = annotationMethodMap.keySet();
-                List<Signature> methods = new ArrayList<>();
-                CLASSES.forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap, methods));
-                AspectProcessor.createProxy(methods);
-            }
-        }
-    }
-
-    private static void reInject(){
-        if(AspectProcessor.reInjected()){
-            Set<Class<?>> classes = new HashSet<>();
-            Map<String, Class<?>[]> reInjected = AspectProcessor.getReInjected();
-            reInjected.forEach((k,v) -> {
-                try {
-                    classes.add(Class.forName(k));
-                    if(v.length > 0){
-                        classes.addAll(Arrays.asList(v));
-                    }
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-            });
-            if(!classes.isEmpty()){
-                //将代理对象重新注入到依赖它的类中
-                CLASSES.forEach(e -> reInject(e,classes));
-            }
-        }
-    }
-
-    private static void getAnnotatedMethod(String className, Set<Class<?>> annotations,
-                                           Map<Class<?>, Signature> annotationMethodMap,
-                                           List<Signature> classes) {
-        try {
-            Method[] declaredMethods = Class.forName(className).getDeclaredMethods();
-            Signature signature;
-            Annotation[] declaredAnnotations;
-            for(Method m:declaredMethods){
-                declaredAnnotations = m.getDeclaredAnnotations();
-                for(Annotation a:declaredAnnotations){
-                    if(annotations.contains(a.annotationType())){
-                        signature = annotationMethodMap.get(a.annotationType());
-                        signature.setMethodName(className + PATH_SEPARATOR + m.getName());
-                        classes.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                signature.getMethodName(),signature.getAdviceEnum(),signature.getAdviceMethod()));
-                        break;
-                    }
-                }
-            }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void reInject(String className, Set<Class<?>> classes){
-        try {
-            DependencyInjectProcessor.reInject(Class.forName(className),classes);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static List<String> getClasses(){
+        return CLASSES;
     }
 
     private static void aspectScan(String className) {
@@ -383,4 +326,5 @@ public class HandlerMapping {
         PUT_MAP.forEach((k,v) -> System.out.println("Mapping PUT ["+ k + ":" + v + "]"));
         REQUEST_MAP.forEach((k,v) -> System.out.println("Mapping REQUEST ["+ k + ":" + v + "]"));
     }
+
 }

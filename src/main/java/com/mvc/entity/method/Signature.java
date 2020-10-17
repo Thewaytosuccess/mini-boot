@@ -30,6 +30,12 @@ public class Signature {
 
     }
 
+    public Signature(int parameterCount, Class<?>[] parameterTypes, String methodName){
+        this.parameterCount = parameterCount;
+        this.parameterTypes = parameterTypes;
+        this.methodName = methodName;
+    }
+
     public Signature(int parameterCount, Class<?>[] parameterTypes, String methodName, AdviceEnum adviceEnum, String adviceMethod) {
         this.parameterCount = parameterCount;
         this.parameterTypes = parameterTypes;

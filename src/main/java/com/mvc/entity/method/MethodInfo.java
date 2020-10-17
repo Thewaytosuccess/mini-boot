@@ -13,8 +13,6 @@ public class MethodInfo extends Signature{
 
     private Class<?> returnType;
 
-    private boolean compared = false;
-
     private List<Param> params;
 
     public MethodInfo(){
@@ -44,14 +42,6 @@ public class MethodInfo extends Signature{
 
     public void setReturnType(Class<?> returnType) {
         this.returnType = returnType;
-    }
-
-    public boolean isCompared() {
-        return compared;
-    }
-
-    public void setCompared(boolean compared) {
-        this.compared = compared;
     }
 
     public List<Param> getParams() {

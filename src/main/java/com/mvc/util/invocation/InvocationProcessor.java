@@ -21,6 +21,7 @@ public class InvocationProcessor {
 
     public static Object process(HttpServletRequest request) {
         MethodInfo methodInfo = HandlerMapping.getMethodInfo(request.getRequestURI(),request.getMethod());
+        System.out.println("METHOD === "+methodInfo);
         if(Objects.nonNull(methodInfo)){
             List<Param> params = methodInfo.getParams();
             Map<String, String[]> parameterMap = request.getParameterMap();
@@ -44,7 +45,6 @@ public class InvocationProcessor {
                     }
                 }
             }
-            System.out.println("method info === "+methodInfo);
             return invoke(methodInfo);
         }
         return null;

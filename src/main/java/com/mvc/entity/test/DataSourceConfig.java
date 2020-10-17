@@ -2,7 +2,7 @@ package com.mvc.entity.test;
 
 import com.mvc.annotation.config.Configuration;
 import com.mvc.annotation.config.ConfigurationProperties;
-import com.mvc.annotation.type.ComponentScan;
+import com.mvc.annotation.type.component.ComponentScan;
 
 /**
  * @author xhzy

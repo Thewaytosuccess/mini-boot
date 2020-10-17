@@ -1,6 +1,6 @@
 package com.mvc.servlet;
 
-import com.mvc.util.injection.ConfigInjectProcessor;
+import com.mvc.util.injection.ConfigurationProcessor;
 import com.mvc.util.mapping.HandlerMapping;
 import com.mvc.util.invocation.InvocationProcessor;
 
@@ -24,7 +24,7 @@ public class DispatcherServlet extends HttpServlet {
     public void init(ServletConfig config) {
         //1.加载配置
         String configLocation = config.getInitParameter("contextConfigLocation");
-        Properties properties = ConfigInjectProcessor.loadConfig(configLocation);
+        Properties properties = ConfigurationProcessor.loadConfig(configLocation);
         String basePackage = properties.getProperty("component.scan.base.packages");
 
         //2.包扫描，将所有被注解的类和方法统一注册到IOC容器

@@ -38,7 +38,7 @@ public class DataBindingProcessor {
                 list.forEach(e -> patternMap.put(toRegExp(e,parameterNames,separators),e));
 
                 Map<String, String> parameterMap = getParameterMap(parameterNames, getValues(separators, uri));
-                if(Objects.nonNull(parameterMap) && !parameterMap.isEmpty()){
+                if(!parameterMap.isEmpty()){
                     Set<String> keySet = patternMap.keySet();
                     for(String regExp:keySet){
                         if(uri.matches(regExp)){
@@ -78,11 +78,8 @@ public class DataBindingProcessor {
      * @return 参数名和参数值的映射
      */
     private static Map<String,String> getParameterMap(List<String> names, List<String> values) {
-        if(names.size() != values.size()){
-            return null;
-        }
         Map<String,String> map = new HashMap<>(16);
-        for(int i=0,len = names.size();i < len ; ++i){
+        for(int i=0,len = values.size();i < len ; ++i){
             map.put(names.get(i),values.get(i));
         }
         return map;

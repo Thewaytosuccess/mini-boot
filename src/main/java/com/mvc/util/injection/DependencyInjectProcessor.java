@@ -1,11 +1,8 @@
 package com.mvc.util.injection;
 
-import com.mvc.annotation.bean.Autowired;
-import com.mvc.annotation.bean.Bean;
-import com.mvc.annotation.bean.Qualifier;
-import com.mvc.annotation.bean.Resource;
-import com.mvc.annotation.type.Component;
-import com.mvc.annotation.type.Service;
+import com.mvc.annotation.bean.*;
+import com.mvc.annotation.type.component.Component;
+import com.mvc.annotation.type.service.Service;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -35,7 +32,7 @@ public class DependencyInjectProcessor {
     public static void inject(Class<?> clazz) throws Exception{
         Object instance = clazz.newInstance();
         //1.先注入配置
-        ConfigInjectProcessor.configInject(instance);
+        ConfigurationProcessor.inject(instance);
         //2.再注入bean
         beanInject(instance);
         //3.最后注入依赖的成员对象
@@ -52,6 +49,20 @@ public class DependencyInjectProcessor {
         }
         if(!fields.isEmpty()){
             fieldsInject(getInstance(clazz),fields,false);
+        }
+    }
+
+    public static void initialize(String className){
+        try {
+            Class<?> clazz = Class.forName(className);
+            Method[] declaredMethods = clazz.getDeclaredMethods();
+            for(Method m:declaredMethods){
+                if(m.isAnnotationPresent(PostConstruct.class)){
+                    m.invoke(getInstance(clazz));
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -155,7 +166,7 @@ public class DependencyInjectProcessor {
             if(f.isAnnotationPresent(Qualifier.class)){
                 name = f.getAnnotation(Qualifier.class).name();
             }else{
-                throw new RuntimeException();
+                throw new IllegalArgumentException();
             }
         }
         if(name.isEmpty()){
@@ -182,7 +193,7 @@ public class DependencyInjectProcessor {
             if(Objects.nonNull(service)){
                 name = service.name();
             }else{
-                name = clazz.getAnnotation(Component.class).name();
+                name = clazz.getAnnotation(Component.class).value();
             }
             if(name.isEmpty()){
                 String simpleName = clazz.getSimpleName();

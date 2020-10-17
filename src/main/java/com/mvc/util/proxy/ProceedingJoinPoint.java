@@ -121,7 +121,11 @@ public class ProceedingJoinPoint {
             e.printStackTrace();
             methodName = AFTER_THROWING_MAP.get(info);
             if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-                handle(methodName);
+                if(info.getParameterCount() == 0){
+                    handle(methodName);
+                }else{
+                    handle(methodName,new Class[]{Exception.class},new Object[]{e});
+                }
             }
         }finally{
             methodName = AFTER_RETURNING_MAP.get(info);

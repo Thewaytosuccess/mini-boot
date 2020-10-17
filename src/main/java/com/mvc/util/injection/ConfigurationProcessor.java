@@ -18,7 +18,7 @@ import static com.mvc.enums.constant.ConstantPool.*;
 /**
  * @author xhzy
  */
-public class ConfigInjectProcessor {
+public class ConfigurationProcessor {
 
     private static final Properties PROPERTIES = new Properties();
 
@@ -47,7 +47,7 @@ public class ConfigInjectProcessor {
      * 注入配置
      * @param instance 实例
      */
-    public static void configInject(Object instance){
+    public static void inject(Object instance){
         if (instance.getClass().isAnnotationPresent(ConfigurationProperties.class)){
             injectByName(instance);
         } else {

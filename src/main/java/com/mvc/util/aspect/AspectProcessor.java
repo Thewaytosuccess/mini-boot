@@ -7,6 +7,7 @@ import com.mvc.entity.method.Signature;
 import com.mvc.enums.AdviceEnum;
 import com.mvc.enums.ModifiersEnum;
 import com.mvc.enums.constant.ConstantPool;
+import com.mvc.util.exception.ControllerAdviceHandler;
 import com.mvc.util.proxy.ProceedingJoinPoint;
 import com.mvc.util.proxy.cglib.CglibAroundProxy;
 import com.mvc.util.proxy.cglib.CglibProxy;
@@ -19,11 +20,12 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
 /**
- * todo 基于类和注解的切面，拦截器，@PostConstruct，@PreDestroy，统一异常处理
+ * todo 基于类和注解的切面，拦截器，@PreDestroy，统一异常处理
  * @author xhzy
  */
 public class AspectProcessor {
@@ -62,51 +64,29 @@ public class AspectProcessor {
             for(Method m:declaredMethods){
                 adviceMethod = clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName();
                 if(m.isAnnotationPresent(Before.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(Before.class).value(),adviceMethod,AdviceEnum.Before);
-                    if(Objects.nonNull(info)){
-                        buildClassMethodMap(info);
-                    }
+                    parseExpression(m.getAnnotation(Before.class).value(),adviceMethod,AdviceEnum.Before);
                 }else if(m.isAnnotationPresent(Around.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(Around.class).value(), adviceMethod, AdviceEnum.Around);
-                    if(Objects.nonNull(info)){
-                        buildClassMethodMap(info);
-                    }
+                    parseExpression(m.getAnnotation(Around.class).value(), adviceMethod, AdviceEnum.Around);
                 }else if(m.isAnnotationPresent(After.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(After.class).value(), adviceMethod,
-                            AdviceEnum.After);
-                    if(Objects.nonNull(info)){
-                        buildClassMethodMap(info);
-                    }
+                    parseExpression(m.getAnnotation(After.class).value(), adviceMethod, AdviceEnum.After);
                 }else if(m.isAnnotationPresent(AfterReturning.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(AfterReturning.class).value(),
-                            adviceMethod, AdviceEnum.AfterReturning);
-                    if(Objects.nonNull(info)){
-                        buildClassMethodMap(info);
-                    }
+                    parseExpression(m.getAnnotation(AfterReturning.class).value(), adviceMethod, AdviceEnum.AfterReturning);
                 }else if(m.isAnnotationPresent(AfterThrowing.class)){
-                    MethodInfo info = parseExpression(m.getAnnotation(AfterThrowing.class).value(),
-                            adviceMethod, AdviceEnum.AfterThrowing);
-                    if(Objects.nonNull(info)){
-                        buildClassMethodMap(info);
-                    }
+                    parseExpression(m.getAnnotation(AfterThrowing.class).value(), adviceMethod, AdviceEnum.AfterThrowing);
                 }
             }
         }
     }
 
-    private static void buildClassMethodMap(Signature signature){
-        try{
-            String methodName = signature.getMethodName();
-            Class<?> key = Class.forName(methodName.substring(0, methodName.lastIndexOf(PATH_SEPARATOR)));
-            List<Signature> methods = CLASS_METHOD_MAP.get(key);
-            if(Objects.isNull(methods)){
-                methods = new ArrayList<>();
-            }
-            methods.add(signature);
-            CLASS_METHOD_MAP.put(key,methods);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+    public static void createProxy(List<Signature> methods) {
+        methods.forEach(AspectProcessor::buildClassMethodMap);
+        createProxy();
+    }
+
+    public static void createProxy(){
+        //统一异常处理
+        ControllerAdviceHandler.handle().forEach(AspectProcessor::buildClassMethodMap);
+        CLASS_METHOD_MAP.forEach(AspectProcessor::createProxy);
     }
 
     public static boolean reInjected(){
@@ -226,42 +206,36 @@ public class AspectProcessor {
     /**
      * 解析execution表达式
      * @param execution execution表达式
-     * eg:[public String com.mvc.Class.method(pType pName...)]
+     * eg:[public com.mvc.Class.method(pType pName...)]
      */
-    private static MethodInfo parseExpression(String execution, String adviceMethod, AdviceEnum adviceEnum) {
+    private static void parseExpression(String execution, String adviceMethod, AdviceEnum adviceEnum) {
         if(!execution.isEmpty()){
             if(execution.startsWith(ConstantPool.EXECUTION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
-                MethodInfo info = parseExecutionExpression(execution);
-                info.setAdviceMethod(adviceMethod);
-                info.setAdviceEnum(adviceEnum);
-                return info;
+                parseExecutionExpression(execution).forEach(e -> {
+                    e.setAdviceMethod(adviceMethod);
+                    e.setAdviceEnum(adviceEnum);
+                    buildClassMethodMap(e);
+                    System.out.println("execution method = "+e);
+                });
             }else if(execution.startsWith(ConstantPool.ANNOTATION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
                 parseAnnotationExpression(execution,adviceMethod,adviceEnum);
             }
         }
-        return null;
     }
 
-    private static MethodInfo parseExecutionExpression(String execution){
-        execution = execution.substring(execution.indexOf(ConstantPool.EXECUTION_PREFIX + 1), execution.length() - 1);
+    private static Set<Signature> parseExecutionExpression(String execution){
+        execution = execution.substring(10, execution.length() - 1);
         String[] split = execution.split(" ");
         if(split.length != ConstantPool.TWO){
-            throw new IllegalArgumentException();
-        }
-        MethodInfo info = new MethodInfo();
-        if(!split[0].isEmpty()){
-            setModifiers(info,split[0]);
-        }else{
             throw new IllegalArgumentException();
         }
 
         String param = split[1];
         if(!param.isEmpty()){
-            setNameAndParameters(info,param);
+            return setMethodNameAndParameters(param);
         }else{
             throw new IllegalArgumentException();
         }
-        return info;
     }
 
     private static void parseAnnotationExpression(String execution, String methodName, AdviceEnum adviceEnum) {
@@ -274,10 +248,10 @@ public class AspectProcessor {
             //扫描包含此注解的方法创建aop代理
             Class<?> clazz = Class.forName(execution);
             if(clazz.isAnnotation()){
-                Signature info = new Signature();
-                info.setAdviceMethod(methodName);
-                info.setAdviceEnum(adviceEnum);
-                ANNOTATION_METHOD_MAP.put(clazz,info);
+                Signature signature = new Signature();
+                signature.setAdviceMethod(methodName);
+                signature.setAdviceEnum(adviceEnum);
+                ANNOTATION_METHOD_MAP.put(clazz,signature);
             }else{
                 throw new IllegalArgumentException();
             }
@@ -286,28 +260,110 @@ public class AspectProcessor {
         }
     }
 
-    private static void setNameAndParameters(MethodInfo info, String s) {
+    public static String toRegExp(String exp){
+        StringBuilder builder = new StringBuilder("^");
+        String[] split = exp.split("\\.");
+        for(String str:split){
+            builder.append(str).append("\\.");
+        }
+        split = builder.toString().split("\\*");
+        builder.delete(0,builder.length());
+        for(int i=0,len=split.length ; i < len - 1; ++i){
+            builder.append(split[i]).append("+\\w+");
+        }
+        return builder.toString();
+    }
+
+    private static Set<Signature> setMethodNameAndParameters(String s) {
         String[] split = s.split("\\(");
         if(split.length == ConstantPool.TWO){
-            info.setMethodName(split[0]);
-            if(split[1].endsWith(ConstantPool.RIGHT_BRACKET)){
-                String param = split[1].substring(0,split[1].length() - 1);
-                if(param.isEmpty()){
-                    info.setParameterCount(0);
-                    info.setCompared(false);
-                }else if(ConstantPool.ANY_PARAM.equals(param)){
-                    info.setParameterCount(-1);
-                    info.setCompared(false);
+            Set<Signature> methods = new HashSet<>();
+            String[] parts = getParts(split);
+            int len = parts.length;
+            String className = parts[len - 2];
+            String methodName = parts[len - 1];
+
+            if(className.contains(ConstantPool.ANY)){
+                if(className.equals(ConstantPool.ANY)){
+                    int index = split[0].length() - className.length() - methodName.length() - 2;
+                    AspectHandler.classScan(split[0].substring(0,index), methods);
+                }else{
+                    //pattern match
+                    AspectHandler.patternClassScan(split[0].substring(0,split[0].lastIndexOf(".")), methods);
                 }
-            }else{
-                throw new IllegalArgumentException();
             }
+
+            if(methodName.contains(ConstantPool.ANY)){
+                if(methodName.equals(ConstantPool.ANY)){
+                    //类下的所有方法
+                    if(methods.isEmpty()){
+                        AspectHandler.methodScan(split[0].substring(0,split[0].lastIndexOf(".")), methods);
+                    }
+                }else{
+                    //pattern match
+                    if(methods.isEmpty()){
+                        AspectHandler.patternMethodScan(split[0], methods,true);
+                    }else{
+                        methods = methods.stream().filter(e -> e.getMethodName().matches(
+                                toRegExp(split[0]))).collect(Collectors.toSet());
+                    }
+                }
+            }else {
+                if(methods.isEmpty()){
+                    AspectHandler.patternMethodScan(split[0], methods,false);
+                }else{
+                    methods = methods.stream().filter(e -> e.getMethodName().endsWith(methodName)).
+                            collect(Collectors.toSet());
+                }
+            }
+
+            String param = split[1].substring(0, split[1].length() - 1);
+            if (param.isEmpty()) {
+                methods = methods.stream().filter(e -> e.getParameterCount() == 0).collect(Collectors.toSet());
+            } else if (ConstantPool.ANY_PARAM.equals(param)) {
+                //类下的指定方法
+                if(methods.isEmpty()){
+                    AspectHandler.patternMethodScan(split[0], methods,false);
+                }
+            } else {
+                //根据参数精确匹配
+                System.out.println("TODO");
+            }
+            return methods;
         }else{
             throw new IllegalArgumentException();
         }
     }
 
-    private static void setModifiers(MethodInfo info,String s){
+    private static String[] getParts(String[] split) {
+        if(!split[1].endsWith(ConstantPool.RIGHT_BRACKET)){
+            throw new IllegalArgumentException();
+        }
+
+        String[] parts = split[0].split("\\.");
+        if(parts.length <= ConstantPool.TWO){
+            throw new IllegalArgumentException();
+        }
+        return parts;
+    }
+
+    private static void buildClassMethodMap(Signature signature){
+        try{
+            String methodName = signature.getMethodName();
+            Class<?> key = Class.forName(methodName.substring(0, methodName.lastIndexOf(PATH_SEPARATOR)));
+            List<Signature> methods = CLASS_METHOD_MAP.get(key);
+            if(Objects.isNull(methods)){
+                methods = new ArrayList<>();
+            }
+            methods.add(signature);
+            CLASS_METHOD_MAP.put(key,methods);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Deprecated
+    public static void setModifiers(MethodInfo info,String s){
         if(ModifiersEnum.PUBLIC.getKey().equals(s)){
             info.setModifiers(Modifier.PUBLIC);
         }else if(ModifiersEnum.PRIVATE.getKey().equals(s)){
@@ -319,9 +375,5 @@ public class AspectProcessor {
         }
     }
 
-    public static void createProxy(List<Signature> methods) {
-        methods.forEach(System.out::println);
-        methods.forEach(AspectProcessor::buildClassMethodMap);
-        CLASS_METHOD_MAP.forEach(AspectProcessor::createProxy);
-    }
+
 }

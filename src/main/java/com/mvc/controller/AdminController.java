@@ -1,7 +1,6 @@
 package com.mvc.controller;
 
-import com.mvc.annotation.bean.Autowired;
-import com.mvc.annotation.bean.Qualifier;
+import com.mvc.annotation.bean.Resource;
 import com.mvc.annotation.config.Value;
 import com.mvc.annotation.method.DeleteMapping;
 import com.mvc.annotation.method.GetMapping;
@@ -17,14 +16,13 @@ import com.mvc.service.UserService;
  * @author xhzy
  */
 @RestController
-@RequestMapping("/api/user")
-public class UserController {
+@RequestMapping("/api/admin")
+public class AdminController {
 
     @Value("${spring.dataSource.user-name}")
     private String username;
 
-    @Autowired
-    @Qualifier(name = "userServiceImpl")
+    @Resource(name="anotherUserServiceImpl")
     private UserService userService;
 
     @GetMapping("/get")

@@ -1,4 +1,4 @@
-package com.mvc.annotation.type;
+package com.mvc.annotation.type.component;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface Service {
+public @interface Component {
 
-    String name() default "";
+    String value() default "";
 
 }
