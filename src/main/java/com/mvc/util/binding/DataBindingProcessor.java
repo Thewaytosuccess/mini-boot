@@ -3,6 +3,7 @@ package com.mvc.util.binding;
 import com.alibaba.fastjson.JSONObject;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
+import com.mvc.util.exception.ExceptionWrapper;
 
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -145,7 +146,7 @@ public class DataBindingProcessor {
                 return builder.toString();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
         return null;
     }

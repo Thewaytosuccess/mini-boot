@@ -1,5 +1,6 @@
 package com.mvc.util;
 
+import com.mvc.util.exception.ExceptionWrapper;
 import javassist.*;
 import javassist.util.proxy.ProxyFactory;
 
@@ -40,7 +41,7 @@ public class SetterGenerator {
             ctClass.writeFile("target/classes/");
             PROXY_MAP.put(clazz,ctClass.toClass().newInstance());
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 
@@ -69,7 +70,7 @@ public class SetterGenerator {
             //生成字段的setter方法
             ctClass.addMethod(CtNewMethod.setter("set"+f.getType().getSimpleName(),ctField));
         }catch (Exception e){
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 

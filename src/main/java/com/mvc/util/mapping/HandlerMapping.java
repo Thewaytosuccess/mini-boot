@@ -13,10 +13,12 @@ import com.mvc.annotation.type.controller.RestController;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.HttpMethodEnum;
 import com.mvc.util.aspect.AspectHandler;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.binding.DataBindingProcessor;
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.io.*;
@@ -104,11 +106,11 @@ public class HandlerMapping {
                     break;
                 }
             } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
+                throw new ExceptionWrapper(ex);
             }
         }
         if(Objects.isNull(basePackage)){
-            throw new RuntimeException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
         classes.clear();
         packageScan(basePackage);
@@ -158,8 +160,8 @@ public class HandlerMapping {
                 }else if(clazz.isAnnotationPresent(ControllerAdvice.class)){
                     controllerAdvice.set(clazz);
                 }
-            } catch (ClassNotFoundException classNotFoundException) {
-                classNotFoundException.printStackTrace();
+            } catch (ClassNotFoundException ex) {
+                throw new ExceptionWrapper(ex);
             }
         });
 
@@ -250,7 +252,7 @@ public class HandlerMapping {
                 methodMapping(clazz);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 

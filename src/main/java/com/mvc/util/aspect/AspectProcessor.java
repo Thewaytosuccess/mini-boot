@@ -5,9 +5,11 @@ import com.mvc.annotation.aop.aspect.Aspect;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.AdviceEnum;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.ModifiersEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.exception.ControllerAdviceHandler;
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.proxy.ProceedingJoinPoint;
 import com.mvc.util.proxy.cglib.CglibAroundProxy;
 import com.mvc.util.proxy.cglib.CglibProxy;
@@ -120,7 +122,7 @@ public class AspectProcessor {
                     return e.getKey();
                 }
             } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
+                throw new ExceptionWrapper(ex);
             }
         }
         return null;
@@ -166,10 +168,10 @@ public class AspectProcessor {
                 //将代理对象注入到ioc容器
                 DependencyInjectProcessor.replace(targetClass,proxy);
             }else{
-                throw new IllegalArgumentException();
+                throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 
@@ -227,21 +229,21 @@ public class AspectProcessor {
         execution = execution.substring(10, execution.length() - 1);
         String[] split = execution.split(" ");
         if(split.length != ConstantPool.TWO){
-            throw new IllegalArgumentException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
 
         String param = split[1];
         if(!param.isEmpty()){
             return setMethodNameAndParameters(param);
         }else{
-            throw new IllegalArgumentException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
     }
 
     private static void parseAnnotationExpression(String execution, String methodName, AdviceEnum adviceEnum) {
         execution = execution.substring(12, execution.length() - 1);
         if(execution.isEmpty()){
-            throw new IllegalArgumentException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
 
         try {
@@ -253,10 +255,10 @@ public class AspectProcessor {
                 signature.setAdviceEnum(adviceEnum);
                 ANNOTATION_METHOD_MAP.put(clazz,signature);
             }else{
-                throw new IllegalArgumentException();
+                throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 
@@ -336,18 +338,18 @@ public class AspectProcessor {
             }
             return methods;
         }else{
-            throw new IllegalArgumentException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
     }
 
     private static String[] getParts(String[] split) {
         if(!split[1].endsWith(ConstantPool.RIGHT_BRACKET)){
-            throw new IllegalArgumentException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
 
         String[] parts = split[0].split("\\.");
         if(parts.length <= ConstantPool.TWO){
-            throw new IllegalArgumentException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
         return parts;
     }
@@ -363,7 +365,7 @@ public class AspectProcessor {
             methods.add(signature);
             CLASS_METHOD_MAP.put(key,methods);
         }catch (Exception e){
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 

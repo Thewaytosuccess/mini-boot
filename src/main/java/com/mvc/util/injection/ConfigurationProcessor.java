@@ -2,6 +2,7 @@ package com.mvc.util.injection;
 
 import com.mvc.annotation.config.ConfigurationProperties;
 import com.mvc.annotation.config.Value;
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.mapping.HandlerMapping;
 
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class ConfigurationProcessor {
                 PROPERTIES.load(stream);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
         return PROPERTIES;
     }
@@ -106,7 +107,7 @@ public class ConfigurationProcessor {
                         name.append(PATH_SEPARATOR);
                     }
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    throw new ExceptionWrapper(e);
                 }
             }
         }
@@ -173,7 +174,7 @@ public class ConfigurationProcessor {
                 f.set(instance,key);
             }
         }catch (Exception e){
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 
@@ -198,7 +199,7 @@ public class ConfigurationProcessor {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ExceptionWrapper(e);
             }
         }
     }
@@ -213,7 +214,7 @@ public class ConfigurationProcessor {
                     System.out.println(m.getName()+" >>> "+m.invoke(obj));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ExceptionWrapper(e);
             }
         }
     }

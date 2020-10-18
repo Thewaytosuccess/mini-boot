@@ -3,7 +3,9 @@ package com.mvc.util.injection;
 import com.mvc.annotation.bean.*;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.service.Service;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
+import com.mvc.util.exception.ExceptionWrapper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -67,7 +69,7 @@ public class DependencyInjectProcessor {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            throw new ExceptionWrapper(ex);
         }
     }
 
@@ -78,7 +80,7 @@ public class DependencyInjectProcessor {
                 Class<?> clazz = Class.forName(k.substring(0, index));
                 clazz.getDeclaredMethod(k.substring(index + 1)).invoke(getInstance(clazz));
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ExceptionWrapper(e);
             }
         });
     }
@@ -183,15 +185,15 @@ public class DependencyInjectProcessor {
             if(f.isAnnotationPresent(Qualifier.class)){
                 name = f.getAnnotation(Qualifier.class).name();
             }else{
-                throw new IllegalArgumentException();
+                throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
         }
         if(name.isEmpty()){
-            throw new RuntimeException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
         Class<?> clazz = NAME_CLASS_MAP.get(name);
         if(Objects.isNull(clazz)){
-            throw new RuntimeException();
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
         return clazz;
     }

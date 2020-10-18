@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
 import com.mvc.util.binding.DataBindingProcessor;
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.DependencyInjectProcessor;
 import com.mvc.util.mapping.HandlerMapping;
 
@@ -61,7 +62,7 @@ public class InvocationProcessor {
                 return clazz.getDeclaredMethod(methodName.substring(index + 1), params.stream().map(Param::getType).toArray(Class[]::new))
                         .invoke(DependencyInjectProcessor.getInstance(clazz),params.stream().map(Param::getValue).toArray(Object[]::new));
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ExceptionWrapper(e);
             }
         }
         return null;

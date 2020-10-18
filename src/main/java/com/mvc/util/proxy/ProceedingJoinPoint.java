@@ -3,6 +3,7 @@ package com.mvc.util.proxy;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.aspect.AspectProcessor;
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.lang.reflect.Method;
@@ -169,7 +170,7 @@ public class ProceedingJoinPoint {
                     return clazz.getDeclaredMethod(method.substring(index + 1)).invoke(DependencyInjectProcessor.getInstance(clazz));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ExceptionWrapper(e);
             }
         }
         return null;

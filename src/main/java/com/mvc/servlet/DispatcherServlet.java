@@ -1,5 +1,6 @@
 package com.mvc.servlet;
 
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.ConfigurationProcessor;
 import com.mvc.util.injection.DependencyInjectProcessor;
 import com.mvc.util.mapping.HandlerMapping;
@@ -56,7 +57,7 @@ public class DispatcherServlet extends HttpServlet {
         try(PrintWriter writer = resp.getWriter()){
             writer.write(Objects.nonNull(result) ? result.toString() : "result is null");
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 

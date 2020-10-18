@@ -1,6 +1,7 @@
 package com.mvc.util.aspect;
 
 import com.mvc.entity.method.Signature;
+import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.DependencyInjectProcessor;
 import com.mvc.util.mapping.HandlerMapping;
 
@@ -26,7 +27,7 @@ public class AspectHandler {
                         classes.addAll(Arrays.asList(v));
                     }
                 } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                    throw new ExceptionWrapper(e);
                 }
             });
             if(!classes.isEmpty()){
@@ -40,7 +41,7 @@ public class AspectHandler {
         try {
             DependencyInjectProcessor.reInject(clazz,classes);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new ExceptionWrapper(e);
         }
     }
 
