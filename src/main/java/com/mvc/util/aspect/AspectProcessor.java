@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
 /**
- * todo 基于类和注解的切面，拦截器，统一异常处理
+ * todo 基于类和注解的切面，拦截器
  * @author xhzy
  */
 public class AspectProcessor {
