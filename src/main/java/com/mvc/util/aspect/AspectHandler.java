@@ -36,15 +36,15 @@ public class AspectHandler {
         }
     }
 
-    private static void reInject(String className, Set<Class<?>> classes){
+    private static void reInject(Class<?> clazz, Set<Class<?>> classes){
         try {
-            DependencyInjectProcessor.reInject(Class.forName(className),classes);
+            DependencyInjectProcessor.reInject(clazz,classes);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static List<String> getClasses(){
+    private static List<Class<?>> getClasses(){
         return HandlerMapping.getClasses();
     }
 
@@ -63,73 +63,60 @@ public class AspectHandler {
         }
     }
 
-    private static void getAnnotatedMethod(String className, Set<Class<?>> annotations,
+    private static void getAnnotatedMethod(Class<?> clazz, Set<Class<?>> annotations,
                                            Map<Class<?>, Signature> annotationMethodMap,
                                            List<Signature> classes) {
-        try {
-            Method[] declaredMethods = Class.forName(className).getDeclaredMethods();
-            Signature signature;
-            Annotation[] declaredAnnotations;
-            for(Method m:declaredMethods){
-                declaredAnnotations = m.getDeclaredAnnotations();
-                for(Annotation a:declaredAnnotations){
-                    if(annotations.contains(a.annotationType())){
-                        signature = annotationMethodMap.get(a.annotationType());
-                        signature.setMethodName(className + PATH_SEPARATOR + m.getName());
-                        classes.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                signature.getMethodName(),signature.getAdviceEnum(),signature.getAdviceMethod()));
-                        break;
-                    }
+        Method[] declaredMethods = clazz.getDeclaredMethods();
+        Signature signature;
+        Annotation[] declaredAnnotations;
+        for(Method m:declaredMethods){
+            declaredAnnotations = m.getDeclaredAnnotations();
+            for(Annotation a:declaredAnnotations){
+                if(annotations.contains(a.annotationType())){
+                    signature = annotationMethodMap.get(a.annotationType());
+                    signature.setMethodName(clazz.getName() + PATH_SEPARATOR + m.getName());
+                    classes.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                            signature.getMethodName(),signature.getAdviceEnum(),signature.getAdviceMethod()));
+                    break;
                 }
             }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         }
     }
 
-    public static void methodScan(String className, Set<Signature> list) {
-        getClasses().stream().filter(e -> e.equals(className)).forEach(e -> {
-            try {
-                Method[] methods = Class.forName(e).getDeclaredMethods();
-                for(Method m:methods){
-                    list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                            className + PATH_SEPARATOR + m.getName()));
-                }
-            } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
-            }
-        });
+    public static void methodScan(Class<?> clazz, Set<Signature> list) {
+        Method[] methods = clazz.getDeclaredMethods();
+        for(Method m:methods){
+            list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                    clazz.getName() + PATH_SEPARATOR + m.getName()));
+        }
     }
 
     public static void classScan(String packageName, Set<Signature> list) {
-        getClasses().stream().filter(e -> e.startsWith(packageName)).forEach(e -> methodScan(e, list));
+        getClasses().stream().filter(e -> e.getName().startsWith(packageName)).forEach(e -> methodScan(e, list));
     }
 
     public static void patternClassScan(String className, Set<Signature> list) {
-        getClasses().stream().filter(e -> e.matches(AspectProcessor.toRegExp(className))).forEach(e -> methodScan(e, list));
+        getClasses().stream().filter(e -> e.getName().matches(AspectProcessor.toRegExp(className))).
+                forEach(e -> methodScan(e, list));
     }
 
     public static void patternMethodScan(String methodName, Set<Signature> list, boolean patternMatch) {
         int index = methodName.lastIndexOf(".");
         String className = methodName.substring(0,index);
-        getClasses().stream().filter(e -> e.equals(className)).forEach(e -> {
-            try {
-                Method[] methods = Class.forName(e).getDeclaredMethods();
-                for(Method m:methods){
-                    if(patternMatch){
-                        if(m.getName().matches(AspectProcessor.toRegExp(methodName.substring(index + 1)))){
-                            list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                    className + PATH_SEPARATOR + m.getName()));
-                        }
-                    }else{
-                        if(m.getName().equals(methodName.substring(index + 1))){
-                            list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                    className + PATH_SEPARATOR + m.getName()));
-                        }
+        getClasses().stream().filter(e -> e.getName().equals(className)).forEach(e -> {
+            Method[] methods = e.getDeclaredMethods();
+            for(Method m:methods){
+                if(patternMatch){
+                    if(m.getName().matches(AspectProcessor.toRegExp(methodName.substring(index + 1)))){
+                        list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                                className + PATH_SEPARATOR + m.getName()));
+                    }
+                }else{
+                    if(m.getName().equals(methodName.substring(index + 1))){
+                        list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                                className + PATH_SEPARATOR + m.getName()));
                     }
                 }
-            } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
             }
         });
     }

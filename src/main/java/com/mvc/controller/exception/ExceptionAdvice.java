@@ -11,6 +11,8 @@ public class ExceptionAdvice implements ExceptionHandler {
 
     @Override
     public Object handle(Exception e) {
-        return null;
+        System.out.println("ha ha exception is caught");
+        e.printStackTrace();
+        return "ha ha exception is caught";
     }
 }

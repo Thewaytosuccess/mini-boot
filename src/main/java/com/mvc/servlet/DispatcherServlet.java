@@ -1,6 +1,7 @@
 package com.mvc.servlet;
 
 import com.mvc.util.injection.ConfigurationProcessor;
+import com.mvc.util.injection.DependencyInjectProcessor;
 import com.mvc.util.mapping.HandlerMapping;
 import com.mvc.util.invocation.InvocationProcessor;
 
@@ -58,4 +59,12 @@ public class DispatcherServlet extends HttpServlet {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void destroy() {
+        DependencyInjectProcessor.destroy();
+        super.destroy();
+    }
+
+
 }

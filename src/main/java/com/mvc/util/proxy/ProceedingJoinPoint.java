@@ -52,11 +52,15 @@ public class ProceedingJoinPoint {
      * @return 父类方法的执行结果
      */
     public Object proceed(){
+        Signature signature = getSignature();
         try{
             return jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(method.getName(),
                     method.getParameterTypes()).invoke(target,args);
-        }catch (Exception e){
-            throw new RuntimeException();
+        } catch (Exception e){
+            return afterThrowingHandle(signature,e);
+        } finally {
+            afterHandle(signature);
+            afterReturningHandle(signature);
         }
     }
 
@@ -85,7 +89,16 @@ public class ProceedingJoinPoint {
                     throw new IllegalStateException("Unexpected value: " + e.getAdviceEnum());
             }
         });
+    }
 
+    protected Object handle(){
+        String methodName = BEFORE_MAP.get(getSignature());
+        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+            handle(methodName);
+        }else{
+            System.out.println("method not found in before map = "+method.getName());
+        }
+        return proceed();
     }
 
     protected ProceedingJoinPoint(Object target, List<Signature> list,boolean jdkProxy){
@@ -95,7 +108,7 @@ public class ProceedingJoinPoint {
     }
 
     protected Object preHandle(){
-        String proxyMethod = BEFORE_MAP.get(getMethodInfo());
+        String proxyMethod = BEFORE_MAP.get(getSignature());
         if(Objects.nonNull(proxyMethod) && !proxyMethod.isEmpty()){
             Class<?>[] argTypes = new Class[]{this.getClass().getSuperclass().getSuperclass()};
             Object[] args = new Object[]{this};
@@ -105,42 +118,29 @@ public class ProceedingJoinPoint {
         }
     }
 
-    protected Object handle(){
-        Signature info = getMethodInfo();
-        String methodName = BEFORE_MAP.get(info);
-        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-            handle(methodName);
-        }else{
-            System.out.println("method not found in proxy map = "+method.getName());
-        }
-
-        Object result = null;
-        try{
-            result = proceed();
-        }catch(Exception e){
-            e.printStackTrace();
-            methodName = AFTER_THROWING_MAP.get(info);
-            if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-                if(info.getParameterCount() == 0){
-                    handle(methodName);
-                }else{
-                    handle(methodName,new Class[]{Exception.class},new Object[]{e});
-                }
-            }
-        }finally{
-            methodName = AFTER_RETURNING_MAP.get(info);
-            if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-                handle(methodName);
-            }
-        }
-        methodName = AFTER_MAP.get(info);
+    private void afterReturningHandle(Signature signature){
+        String methodName = AFTER_RETURNING_MAP.get(signature);
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             handle(methodName);
         }
-        return result;
     }
 
-    private Signature getMethodInfo() {
+    private Object afterThrowingHandle(Signature signature,Exception e){
+        String methodName = AFTER_THROWING_MAP.get(signature);
+        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+            return handle(methodName,new Class[]{Exception.class},new Object[]{e});
+        }
+        return null;
+    }
+
+    private void afterHandle(Signature signature){
+        String methodName = AFTER_MAP.get(signature);
+        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+            handle(methodName);
+        }
+    }
+
+    private Signature getSignature() {
         Signature info = new Signature();
         String classImpl = AspectProcessor.getClassImpl(method.getDeclaringClass());
         if(Objects.isNull(classImpl) || classImpl.isEmpty()){

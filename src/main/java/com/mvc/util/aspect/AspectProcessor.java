@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
 /**
- * todo 基于类和注解的切面，拦截器，@PreDestroy，统一异常处理
+ * todo 基于类和注解的切面，拦截器，统一异常处理
  * @author xhzy
  */
 public class AspectProcessor {
@@ -297,7 +297,12 @@ public class AspectProcessor {
                 if(methodName.equals(ConstantPool.ANY)){
                     //类下的所有方法
                     if(methods.isEmpty()){
-                        AspectHandler.methodScan(split[0].substring(0,split[0].lastIndexOf(".")), methods);
+                        try {
+                            Class<?> clazz = Class.forName(split[0].substring(0,split[0].lastIndexOf(".")));
+                            AspectHandler.methodScan(clazz, methods);
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }else{
                     //pattern match

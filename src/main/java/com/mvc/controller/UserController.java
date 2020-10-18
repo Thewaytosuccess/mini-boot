@@ -44,6 +44,7 @@ public class UserController {
 
     @RequestMapping("/logout")
     public Object logout(){
-        return userService.getDataSourceConfig();
+        throw new IllegalArgumentException();
+        //return userService.getDataSourceConfig();
     }
 }

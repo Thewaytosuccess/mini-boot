@@ -27,7 +27,8 @@ public class AdminController {
 
     @GetMapping("/get")
     public Object getUser(){
-        return "get:username="+username;
+        throw new RuntimeException();
+        //return "get:username="+username;
     }
 
     @PostMapping("/login")

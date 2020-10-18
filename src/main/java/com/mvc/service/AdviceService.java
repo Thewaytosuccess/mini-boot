@@ -31,14 +31,14 @@ public class AdviceService {
 //        System.out.println("this is a test for after advice, hello world =====");
 //    }
 
-    @Around("execution(public com.mvc.controller.*Controller.get*(..))")
-    public Object testAround(ProceedingJoinPoint point){
-        System.out.println("this is a test for [before advice] =====");
-        Object result = point.proceed();
-        System.out.println("result ===="+ result);
-        System.out.println("this is a test for [after advice] =====");
-        return result;
-    }
+//    @Around("execution(public com.mvc.controller.*Controller.get*(..))")
+//    public Object testAround(ProceedingJoinPoint point){
+//        System.out.println("this is a test for [before advice] =====");
+//        Object result = point.proceed();
+//        System.out.println("result ===="+ result);
+//        System.out.println("this is a test for [after advice] =====");
+//        return result;
+//    }
 
 //    @AfterReturning(execution = "public com.mvc.service.impl.UserServiceImpl.getDataSourceConfig(..)")
 //    public void testAfter(){

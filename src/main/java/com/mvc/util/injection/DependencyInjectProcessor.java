@@ -3,11 +3,13 @@ package com.mvc.util.injection;
 import com.mvc.annotation.bean.*;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.service.Service;
+import com.mvc.enums.constant.ConstantPool;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * @author xhzy
@@ -28,6 +30,8 @@ public class DependencyInjectProcessor {
      * 类名和类的映射
      */
     private static final Map<String,Class<?>> NAME_CLASS_MAP = new ConcurrentHashMap<>();
+
+    private static final Set<String> PRE_DESTROY_SET = new CopyOnWriteArraySet<>();
 
     public static void inject(Class<?> clazz) throws Exception{
         Object instance = clazz.newInstance();
@@ -52,18 +56,31 @@ public class DependencyInjectProcessor {
         }
     }
 
-    public static void initialize(String className){
+    public static void initialize(Class<?> clazz){
         try {
-            Class<?> clazz = Class.forName(className);
             Method[] declaredMethods = clazz.getDeclaredMethods();
             for(Method m:declaredMethods){
                 if(m.isAnnotationPresent(PostConstruct.class)){
                     m.invoke(getInstance(clazz));
+                }else if(m.isAnnotationPresent(PreDestroy.class)){
+                    PRE_DESTROY_SET.add(clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName());
                 }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+    public static void destroy(){
+        PRE_DESTROY_SET.forEach(k -> {
+            int index = k.lastIndexOf(ConstantPool.PATH_SEPARATOR);
+            try {
+                Class<?> clazz = Class.forName(k.substring(0, index));
+                clazz.getDeclaredMethod(k.substring(index + 1)).invoke(getInstance(clazz));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public static Object getInstance(Class<?> clazz){

@@ -1,6 +1,7 @@
 package com.mvc.util.mapping;
 
 import com.mvc.annotation.config.Configuration;
+import com.mvc.annotation.exception.ControllerAdvice;
 import com.mvc.annotation.method.*;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
@@ -24,6 +25,8 @@ import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.mvc.enums.constant.ConstantPool.*;
 
@@ -44,7 +47,9 @@ public class HandlerMapping {
 
     private static String uriPrefix = "";
 
-    private static List<String> CLASSES = new ArrayList<>();
+    private static Set<String> classes = new HashSet<>();
+
+    private static final List<Class<?>> CLASSES = new CopyOnWriteArrayList<>();
 
     /**
      * 包扫描，将所有被注解的类和方法统一注册到注册中心
@@ -72,21 +77,16 @@ public class HandlerMapping {
         print();
     }
 
-    public static List<String> getClasses(){
+    public static List<Class<?>> getClasses(){
         return CLASSES;
     }
 
-    private static void aspectScan(String className) {
-        try {
-            Class<?> clazz = Class.forName(className);
-            if(clazz.isAnnotationPresent(Configuration.class)){
-                //aop
-                AspectProcessor.process(clazz);
-            }else if(clazz.isAnnotationPresent(Component.class)){
-                AspectProcessor.process(clazz);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    private static void aspectScan(Class<?> clazz) {
+        if(clazz.isAnnotationPresent(Configuration.class)){
+            //aop
+            AspectProcessor.process(clazz);
+        }else if(clazz.isAnnotationPresent(Component.class)){
+            AspectProcessor.process(clazz);
         }
     }
 
@@ -96,7 +96,7 @@ public class HandlerMapping {
     private static void rescan(){
         String basePackage = null;
         Class<?> clazz;
-        for(String e:CLASSES){
+        for(String e: classes){
             try {
                 clazz = Class.forName(e);
                 if(clazz.isAnnotationPresent(ComponentScan.class)){
@@ -110,7 +110,7 @@ public class HandlerMapping {
         if(Objects.isNull(basePackage)){
             throw new RuntimeException();
         }
-        CLASSES.clear();
+        classes.clear();
         packageScan(basePackage);
     }
 
@@ -119,14 +119,14 @@ public class HandlerMapping {
      * 此时扫描的文件路径以点开头，需要去掉
      */
     private static void removeDots(){
-        List<String> list = new ArrayList<>();
-        CLASSES.forEach(e -> {
+        Set<String> list = new HashSet<>();
+        classes.forEach(e -> {
             if(e.startsWith(PATH_SEPARATOR) && !e.endsWith(PROPERTIES_FILE_SUFFIX)){
                 list.add(e.substring(1));
             }
         });
         if(list.size() > 0){
-            CLASSES = list;
+            classes = list;
         }
     }
 
@@ -135,37 +135,43 @@ public class HandlerMapping {
      * 注解优先级：@Configuration > @Component > @Service > @Controller/@RestController
      */
     private static void sortAndFilter(){
-        List<String> configurationClasses = new ArrayList<>();
-        List<String> componentClasses = new ArrayList<>();
-        List<String> serviceClasses = new ArrayList<>();
-        List<String> controllerClasses = new ArrayList<>();
-        List<String> restControllerClasses = new ArrayList<>();
+        List<Class<?>> configurationClasses = new ArrayList<>();
+        List<Class<?>> componentClasses = new ArrayList<>();
+        List<Class<?>> serviceClasses = new ArrayList<>();
+        List<Class<?>> controllerClasses = new ArrayList<>();
+        List<Class<?>> restControllerClasses = new ArrayList<>();
+        AtomicReference<Class<?>> controllerAdvice = new AtomicReference<>();
 
-        CLASSES.forEach(e -> {
+        classes.forEach(e -> {
             try {
                 Class<?> clazz = Class.forName(e);
                 if(clazz.isAnnotationPresent(Configuration.class)){
-                    configurationClasses.add(e);
+                    configurationClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(Component.class)){
-                    componentClasses.add(e);
+                    componentClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(Service.class)){
-                    serviceClasses.add(e);
+                    serviceClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(RestController.class)){
-                    restControllerClasses.add(e);
+                    restControllerClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(Controller.class)){
-                    controllerClasses.add(e);
+                    controllerClasses.add(clazz);
+                }else if(clazz.isAnnotationPresent(ControllerAdvice.class)){
+                    controllerAdvice.set(clazz);
                 }
             } catch (ClassNotFoundException classNotFoundException) {
                 classNotFoundException.printStackTrace();
             }
         });
 
-        CLASSES.clear();
         CLASSES.addAll(configurationClasses);
         CLASSES.addAll(componentClasses);
         CLASSES.addAll(serviceClasses);
         CLASSES.addAll(restControllerClasses);
         CLASSES.addAll(controllerClasses);
+        Class<?> advice = controllerAdvice.get();
+        if(Objects.nonNull(advice)){
+            CLASSES.add(advice);
+        }
     }
 
     public static MethodInfo getMethodInfo(String uri,String method){
@@ -218,7 +224,7 @@ public class HandlerMapping {
                     if(f.isDirectory()){
                         packageScan(dirOrFile);
                     }else{
-                        CLASSES.add(dirOrFile.replace(".class",""));
+                        classes.add(dirOrFile.replace(".class",""));
                     }
                 }
             }
@@ -229,12 +235,11 @@ public class HandlerMapping {
      * 解析@RequestMapping,@GetMapping,@PostMapping所注解的方法，拼接成url,
      * 统一注册到map<url,package.class.method>
      */
-    private static void inject(String className){
+    private static void inject(Class<?> clazz){
         try {
-            Class<?> clazz = Class.forName(className);
             //待处理@Controller
             if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class) ||
-               clazz.isAnnotationPresent(Service.class)){
+               clazz.isAnnotationPresent(Service.class) || clazz.isAnnotationPresent(ControllerAdvice.class)){
                 //ioc
                 DependencyInjectProcessor.inject(clazz);
             }else if(clazz.isAnnotationPresent(RestController.class)){

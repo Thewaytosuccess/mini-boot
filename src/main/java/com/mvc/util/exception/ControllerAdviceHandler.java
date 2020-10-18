@@ -8,11 +8,7 @@ import com.mvc.enums.AdviceEnum;
 import com.mvc.util.mapping.HandlerMapping;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.*;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
@@ -23,43 +19,48 @@ public class ControllerAdviceHandler {
 
     public static Set<Signature> handle(){
         Set<Signature> methods = new HashSet<>();
-        AtomicReference<String> adviceMethod = new AtomicReference<>();
-        HandlerMapping.getClasses().forEach(e -> {
-            try {
-                Class<?> clazz = Class.forName(e);
-                if(clazz.isAnnotationPresent(ControllerAdvice.class)){
-                    Class<? extends ExceptionHandler> handler = clazz.getAnnotation(ControllerAdvice.class)
-                            .exceptionHandler();
-                    if(handler != ExceptionHandler.class){
-                        adviceMethod.set(handler.getName() + PATH_SEPARATOR + "handle");
-                    }else{
-                        Method[] declaredMethods = handler.getDeclaredMethods();
-                        for(Method m:declaredMethods){
-                           if(m.isAnnotationPresent(com.mvc.annotation.exception.ExceptionHandler.class)){
-                               adviceMethod.set(clazz.getName() + PATH_SEPARATOR + m.getName());
-                           }
-                        }
-                    }
-                }else if(clazz.isAnnotationPresent(Controller.class) || clazz.isAnnotationPresent(
-                        RestController.class)){
-                    Method[] declaredMethods = clazz.getDeclaredMethods();
-                    for(Method m:declaredMethods){
-                        methods.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                e + PATH_SEPARATOR + m.getName()));
-                    }
-                }
-            } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
-            }
-        });
-        if(Objects.nonNull(adviceMethod.get()) && !adviceMethod.get().isEmpty()){
-            methods.forEach(e -> {
-                e.setAdviceEnum(AdviceEnum.AfterThrowing);
-                e.setAdviceMethod(adviceMethod.get());
-            });
+        List<Class<?>> classes = HandlerMapping.getClasses();
+        if(classes.isEmpty()){
+            return methods;
+        }
+
+        String adviceMethod = null;
+        Class<?> controllerAdvice = classes.get(classes.size() - 1);
+        if(!controllerAdvice.isAnnotationPresent(ControllerAdvice.class)){
             return methods;
         }else{
-            return Collections.emptySet();
+            Class<? extends ExceptionHandler> handler = controllerAdvice.getAnnotation(ControllerAdvice.class)
+                    .exceptionHandler();
+            if(handler != ExceptionHandler.class){
+                adviceMethod = handler.getName() + PATH_SEPARATOR + "handle";
+            }else{
+                Method[] declaredMethods = handler.getDeclaredMethods();
+                for(Method m:declaredMethods){
+                    if(m.isAnnotationPresent(com.mvc.annotation.exception.ExceptionHandler.class)){
+                        adviceMethod = controllerAdvice.getName() + PATH_SEPARATOR + m.getName();
+                    }
+                }
+            }
         }
+
+        if(Objects.isNull(adviceMethod) || adviceMethod.isEmpty()){
+            return methods;
+        }
+
+        classes.forEach(clazz -> {
+            if(clazz.isAnnotationPresent(Controller.class) || clazz.isAnnotationPresent(RestController.class)){
+                Method[] declaredMethods = clazz.getDeclaredMethods();
+                for(Method m:declaredMethods){
+                    methods.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                            clazz.getName() + PATH_SEPARATOR + m.getName()));
+                }
+            }
+        });
+        String finalAdviceMethod = adviceMethod;
+        methods.forEach(e -> {
+            e.setAdviceEnum(AdviceEnum.AfterThrowing);
+            e.setAdviceMethod(finalAdviceMethod);
+        });
+        return methods;
     }
 }
