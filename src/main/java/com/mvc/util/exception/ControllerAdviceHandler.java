@@ -17,9 +17,17 @@ import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
  */
 public class ControllerAdviceHandler {
 
-    public static Set<Signature> handle(){
+    private static final ControllerAdviceHandler HANDLER = new ControllerAdviceHandler();
+
+    private ControllerAdviceHandler(){}
+
+    public static ControllerAdviceHandler getInstance(){
+        return HANDLER;
+    }
+
+    public Set<Signature> handle(){
         Set<Signature> methods = new HashSet<>();
-        List<Class<?>> classes = HandlerMapping.getClasses();
+        List<Class<?>> classes = HandlerMapping.getInstance().getClasses();
         if(classes.isEmpty()){
             return methods;
         }

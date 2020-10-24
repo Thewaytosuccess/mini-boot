@@ -1,5 +1,6 @@
 package com.mvc.util.mapping;
 
+import com.mvc.annotation.aop.aspect.Interceptor;
 import com.mvc.annotation.config.Configuration;
 import com.mvc.annotation.exception.ControllerAdvice;
 import com.mvc.annotation.method.*;
@@ -20,14 +21,14 @@ import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.DependencyInjectProcessor;
+import com.mvc.util.interceptor.HandlerInterceptor;
+import com.mvc.util.interceptor.InterceptorProcessor;
 
 import java.io.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.mvc.enums.constant.ConstantPool.*;
@@ -37,27 +38,35 @@ import static com.mvc.enums.constant.ConstantPool.*;
  */
 public class HandlerMapping {
 
-    private static final Map<String, MethodInfo> GET_MAP = new ConcurrentHashMap<>();
+    private static final HandlerMapping HANDLER_MAPPING = new HandlerMapping();
 
-    private static final Map<String, MethodInfo> POST_MAP = new ConcurrentHashMap<>();
+    private HandlerMapping(){}
 
-    private static final Map<String, MethodInfo> PUT_MAP = new ConcurrentHashMap<>();
+    public static HandlerMapping getInstance(){
+        return HANDLER_MAPPING;
+    }
 
-    private static final Map<String, MethodInfo> DELETE_MAP = new ConcurrentHashMap<>();
+    private Map<String, MethodInfo> getMap;
 
-    private static final Map<String, MethodInfo> REQUEST_MAP = new ConcurrentHashMap<>();
+    private Map<String, MethodInfo> postMap;
 
-    private static String uriPrefix = "";
+    private Map<String, MethodInfo> putMap;
 
-    private static Set<String> classes = new HashSet<>();
+    private Map<String, MethodInfo> deleteMap;
 
-    private static final List<Class<?>> CLASSES = new CopyOnWriteArrayList<>();
+    private Map<String, MethodInfo> requestMap;
+
+    private String uriPrefix = "";
+
+    private Set<String> paths;
+
+    private List<Class<?>> classes;
 
     /**
      * 包扫描，将所有被注解的类和方法统一注册到注册中心
      * @param basePackage 基包
      */
-    public static void scanAndInject(String basePackage){
+    public void scanAndInject(String basePackage){
         //1.包扫描,basePackage为空时，扫描项目根路径下的所有文件
         packageScan(basePackage);
         removeDots();
@@ -67,38 +76,45 @@ public class HandlerMapping {
         //2.解析包含注解的类并按照优先级排序
         sortAndFilter();
         //3.注册所有带注解的类到ioc容器
-        CLASSES.forEach(HandlerMapping::inject);
+        classes.forEach(this::inject);
         //4.切面扫描
-        CLASSES.forEach(HandlerMapping::aspectScan);
+        classes.forEach(this::aspectScan);
+
         //5.判断是否需要创建代理
-        AspectHandler.createProxy();
+        AspectHandler aspectHandler = AspectHandler.getInstance();
+        aspectHandler.createProxy();
         //6.判断是否需要重新注入代理
-        AspectHandler.reInject();
+        aspectHandler.reInject();
+
         //7.bean初始化
-        CLASSES.forEach(DependencyInjectProcessor::initialize);
+        DependencyInjectProcessor injectProcessor = DependencyInjectProcessor.getInstance();
+        classes.forEach(injectProcessor::initialize);
         print();
     }
 
-    public static List<Class<?>> getClasses(){
-        return CLASSES;
+    public List<Class<?>> getClasses(){
+        return classes;
     }
 
-    private static void aspectScan(Class<?> clazz) {
-        if(clazz.isAnnotationPresent(Configuration.class)){
+    private void aspectScan(Class<?> clazz) {
+        if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class)){
             //aop
-            AspectProcessor.process(clazz);
-        }else if(clazz.isAnnotationPresent(Component.class)){
-            AspectProcessor.process(clazz);
+            AspectProcessor.getInstance().process(clazz);
+        }else if(clazz.isAnnotationPresent(Interceptor.class)){
+            if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
+                System.out.println("interceptor === "+clazz.getName());
+                InterceptorProcessor.getInstance().add(clazz);
+            }
         }
     }
 
     /**
      * 扫描@ComponentScan注解，根据basePackages重新扫描
      */
-    private static void rescan(){
+    private void rescan(){
         String basePackage = null;
         Class<?> clazz;
-        for(String e: classes){
+        for(String e: paths){
             try {
                 clazz = Class.forName(e);
                 if(clazz.isAnnotationPresent(ComponentScan.class)){
@@ -112,7 +128,7 @@ public class HandlerMapping {
         if(Objects.isNull(basePackage)){
             throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
-        classes.clear();
+        paths.clear();
         packageScan(basePackage);
     }
 
@@ -120,15 +136,15 @@ public class HandlerMapping {
      * 如果没有配置需要扫描的包，默认扫描项目路径下的所有文件
      * 此时扫描的文件路径以点开头，需要去掉
      */
-    private static void removeDots(){
+    private void removeDots(){
         Set<String> list = new HashSet<>();
-        classes.forEach(e -> {
+        paths.forEach(e -> {
             if(e.startsWith(PATH_SEPARATOR) && !e.endsWith(PROPERTIES_FILE_SUFFIX)){
                 list.add(e.substring(1));
             }
         });
         if(list.size() > 0){
-            classes = list;
+            paths = list;
         }
     }
 
@@ -136,15 +152,16 @@ public class HandlerMapping {
      * 解析包含注解的类并按照优先级排序,同时过滤掉不含注解的类
      * 注解优先级：@Configuration > @Component > @Service > @Controller/@RestController
      */
-    private static void sortAndFilter(){
+    private void sortAndFilter(){
         List<Class<?>> configurationClasses = new ArrayList<>();
         List<Class<?>> componentClasses = new ArrayList<>();
         List<Class<?>> serviceClasses = new ArrayList<>();
         List<Class<?>> controllerClasses = new ArrayList<>();
         List<Class<?>> restControllerClasses = new ArrayList<>();
+        List<Class<?>> interceptorClasses = new ArrayList<>();
         AtomicReference<Class<?>> controllerAdvice = new AtomicReference<>();
 
-        classes.forEach(e -> {
+        paths.forEach(e -> {
             try {
                 Class<?> clazz = Class.forName(e);
                 if(clazz.isAnnotationPresent(Configuration.class)){
@@ -159,52 +176,59 @@ public class HandlerMapping {
                     controllerClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(ControllerAdvice.class)){
                     controllerAdvice.set(clazz);
+                }else if(clazz.isAnnotationPresent(Interceptor.class)){
+                    interceptorClasses.add(clazz);
                 }
             } catch (ClassNotFoundException ex) {
                 throw new ExceptionWrapper(ex);
             }
         });
 
-        CLASSES.addAll(configurationClasses);
-        CLASSES.addAll(componentClasses);
-        CLASSES.addAll(serviceClasses);
-        CLASSES.addAll(restControllerClasses);
-        CLASSES.addAll(controllerClasses);
+        if(Objects.isNull(classes)){
+            classes = new ArrayList<>();
+        }
+        classes.addAll(configurationClasses);
+        classes.addAll(componentClasses);
+        classes.addAll(serviceClasses);
+        classes.addAll(restControllerClasses);
+        classes.addAll(controllerClasses);
+        classes.addAll(interceptorClasses);
+
         Class<?> advice = controllerAdvice.get();
         if(Objects.nonNull(advice)){
-            CLASSES.add(advice);
+            classes.add(advice);
         }
     }
 
-    public static MethodInfo getMethodInfo(String uri,String method){
+    public MethodInfo getMethodInfo(String uri,String method){
         MethodInfo methodInfo = null;
         //精确匹配
         if(HttpMethodEnum.GET.getMethod().equalsIgnoreCase(method)){
-            methodInfo = GET_MAP.get(uri);
+            methodInfo = getMap.get(uri);
             //针对@PathVariable的模糊匹配
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.patternMatch(GET_MAP,uri);
+                methodInfo = DataBindingProcessor.getInstance().patternMatch(getMap,uri);
             }
         }else if(HttpMethodEnum.POST.getMethod().equalsIgnoreCase(method)){
-            methodInfo = POST_MAP.get(uri);
+            methodInfo = postMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.patternMatch(POST_MAP,uri);
+                methodInfo = DataBindingProcessor.getInstance().patternMatch(postMap,uri);
             }
         }else if(HttpMethodEnum.DELETE.getMethod().equalsIgnoreCase(method)){
-            methodInfo = DELETE_MAP.get(uri);
+            methodInfo = deleteMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.patternMatch(DELETE_MAP,uri);
+                methodInfo = DataBindingProcessor.getInstance().patternMatch(deleteMap,uri);
             }
         }else if(HttpMethodEnum.PUT.getMethod().equalsIgnoreCase(method)){
-            methodInfo = PUT_MAP.get(uri);
+            methodInfo = putMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.patternMatch(PUT_MAP,uri);
+                methodInfo = DataBindingProcessor.getInstance().patternMatch(putMap,uri);
             }
         }
         if(Objects.isNull(methodInfo)){
-            methodInfo = REQUEST_MAP.get(uri);
+            methodInfo = requestMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.patternMatch(REQUEST_MAP,uri);
+                methodInfo = DataBindingProcessor.getInstance().patternMatch(requestMap,uri);
             }
         }
         return methodInfo;
@@ -213,20 +237,23 @@ public class HandlerMapping {
     /**
      * 扫描指定包下的所有类
      */
-    private static void packageScan(String basePackage) {
+    private void packageScan(String basePackage) {
         URL resource = HandlerMapping.class.getClassLoader().getResource(URL_SEPARATOR + basePackage.
                 replaceAll("\\.", URL_SEPARATOR));
         if(Objects.nonNull(resource)){
             File root = new File(resource.getFile());
             File[] files = root.listFiles();
             if(Objects.nonNull(files) && files.length > 0){
+                if(Objects.isNull(paths)){
+                    paths = new HashSet<>();
+                }
                 String dirOrFile;
                 for(File f:files){
                     dirOrFile = basePackage + PATH_SEPARATOR + f.getName();
                     if(f.isDirectory()){
                         packageScan(dirOrFile);
                     }else{
-                        classes.add(dirOrFile.replace(".class",""));
+                        paths.add(dirOrFile.replace(".class",""));
                     }
                 }
             }
@@ -237,15 +264,18 @@ public class HandlerMapping {
      * 解析@RequestMapping,@GetMapping,@PostMapping所注解的方法，拼接成url,
      * 统一注册到map<url,package.class.method>
      */
-    private static void inject(Class<?> clazz){
+    private void inject(Class<?> clazz){
         try {
             //待处理@Controller
-            if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class) ||
-               clazz.isAnnotationPresent(Service.class) || clazz.isAnnotationPresent(ControllerAdvice.class)){
+            if(clazz.isAnnotationPresent(Configuration.class) ||
+               clazz.isAnnotationPresent(Component.class) ||
+               clazz.isAnnotationPresent(Service.class) ||
+               clazz.isAnnotationPresent(ControllerAdvice.class) ||
+               clazz.isAnnotationPresent(Interceptor.class)){
                 //ioc
-                DependencyInjectProcessor.inject(clazz);
+                DependencyInjectProcessor.getInstance().inject(clazz);
             }else if(clazz.isAnnotationPresent(RestController.class)){
-                DependencyInjectProcessor.inject(clazz);
+                DependencyInjectProcessor.getInstance().inject(clazz);
                 //解析类上的@RequestMapping，拼装uri前缀
                 getUriPrefix(clazz);
                 //建立uri和对应的方法的映射
@@ -256,7 +286,7 @@ public class HandlerMapping {
         }
     }
 
-    private static void getUriPrefix(Class<?> clazz){
+    private void getUriPrefix(Class<?> clazz){
         if(clazz.isAnnotationPresent(RequestMapping.class)){
             RequestMapping requestMapping = clazz.getAnnotation(RequestMapping.class);
             uriPrefix = requestMapping.value();
@@ -266,14 +296,14 @@ public class HandlerMapping {
         }
     }
 
-    private static String getUri(String uriSuffix){
+    private String getUri(String uriSuffix){
         if(!uriSuffix.isEmpty() && !uriSuffix.startsWith(URL_SEPARATOR)){
             uriSuffix = URL_SEPARATOR + uriSuffix;
         }
         return uriPrefix + uriSuffix;
     }
 
-    private static List<Param> parseParameters(Method method){
+    private List<Param> parseParameters(Method method){
         //参数的注解
         Parameter[] parameters = method.getParameters();
         List<Param> params = new ArrayList<>();
@@ -306,32 +336,61 @@ public class HandlerMapping {
      * 方法上和方法参数上的注解解析
      * @param clazz 类的字节码对象
      */
-    private static void methodMapping(Class<?> clazz){
+    private void methodMapping(Class<?> clazz){
         //getDeclaredMethods可以获取到不包括继承的所有方法，而getMethods只能获取到公有方法
         Method[] methods = clazz.getDeclaredMethods();
         MethodInfo methodInfo;
         for(Method method:methods){
             methodInfo = new MethodInfo(clazz.getName() + PATH_SEPARATOR + method.getName(),parseParameters(method));
             if(method.isAnnotationPresent(GetMapping.class)){
-                GET_MAP.put(getUri(method.getAnnotation(GetMapping.class).value()), methodInfo);
+                if(Objects.isNull(getMap)){
+                    getMap = new HashMap<>(16);
+                }
+                getMap.put(getUri(method.getAnnotation(GetMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(PostMapping.class)){
-                POST_MAP.put(getUri(method.getAnnotation(PostMapping.class).value()), methodInfo);
+                if(Objects.isNull(postMap)){
+                    postMap = new HashMap<>(16);
+                }
+                postMap.put(getUri(method.getAnnotation(PostMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(DeleteMapping.class)){
-                DELETE_MAP.put(getUri(method.getAnnotation(DeleteMapping.class).value()), methodInfo);
+                if(Objects.isNull(deleteMap)){
+                    deleteMap = new HashMap<>(16);
+                }
+                deleteMap.put(getUri(method.getAnnotation(DeleteMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(PutMapping.class)){
-                PUT_MAP.put(getUri(method.getAnnotation(PutMapping.class).value()), methodInfo);
+                if(Objects.isNull(putMap)){
+                    putMap = new HashMap<>(16);
+                }
+                putMap.put(getUri(method.getAnnotation(PutMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(RequestMapping.class)){
-                REQUEST_MAP.put(getUri(method.getAnnotation(RequestMapping.class).value()), methodInfo);
+                if(Objects.isNull(requestMap)){
+                    requestMap = new HashMap<>(16);
+                }
+                requestMap.put(getUri(method.getAnnotation(RequestMapping.class).value()), methodInfo);
             }
         }
     }
 
-    private static void print(){
-        GET_MAP.forEach((k,v) -> System.out.println("Mapping GET [" + k + ":" + v + "]"));
-        POST_MAP.forEach((k,v) -> System.out.println("Mapping POST [" + k + ":" + v + "]"));
-        DELETE_MAP.forEach((k,v) -> System.out.println("Mapping DELETE [" + k + ":" + v + "]"));
-        PUT_MAP.forEach((k,v) -> System.out.println("Mapping PUT ["+ k + ":" + v + "]"));
-        REQUEST_MAP.forEach((k,v) -> System.out.println("Mapping REQUEST ["+ k + ":" + v + "]"));
+    private void print(){
+        if(Objects.nonNull(getMap)){
+            getMap.forEach((k, v) -> System.out.println("Mapping GET [" + k + ":" + v + "]"));
+        }
+
+        if(Objects.nonNull(postMap)){
+            postMap.forEach((k, v) -> System.out.println("Mapping POST [" + k + ":" + v + "]"));
+        }
+
+        if(Objects.nonNull(deleteMap)){
+            deleteMap.forEach((k, v) -> System.out.println("Mapping DELETE [" + k + ":" + v + "]"));
+        }
+
+        if(Objects.nonNull(putMap)){
+            putMap.forEach((k, v) -> System.out.println("Mapping PUT ["+ k + ":" + v + "]"));
+        }
+
+        if(Objects.nonNull(requestMap)){
+            requestMap.forEach((k, v) -> System.out.println("Mapping REQUEST ["+ k + ":" + v + "]"));
+        }
     }
 
 }

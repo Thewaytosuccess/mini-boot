@@ -7,7 +7,7 @@ import com.mvc.util.exception.ExceptionWrapper;
 /**
  * @author xhzy
  */
-@ControllerAdvice(exceptionHandler = ExceptionAdvice.class)
+//@ControllerAdvice(exceptionHandler = ExceptionAdvice.class)
 public class ExceptionAdvice implements ExceptionHandler {
 
     @Override

@@ -3,6 +3,7 @@ package com.mvc.servlet;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.ConfigurationProcessor;
 import com.mvc.util.injection.DependencyInjectProcessor;
+import com.mvc.util.interceptor.InterceptorProcessor;
 import com.mvc.util.mapping.HandlerMapping;
 import com.mvc.util.invocation.InvocationProcessor;
 
@@ -26,14 +27,14 @@ public class DispatcherServlet extends HttpServlet {
     public void init(ServletConfig config) {
         //1.加载配置
         String configLocation = config.getInitParameter("contextConfigLocation");
-        Properties properties = ConfigurationProcessor.loadConfig(configLocation);
+        Properties properties = ConfigurationProcessor.getInstance().loadConfig(configLocation);
         String basePackage = properties.getProperty("component.scan.base.packages");
 
         //2.包扫描，将所有被注解的类和方法统一注册到IOC容器
         if(Objects.isNull(basePackage)){
             basePackage = "";
         }
-        HandlerMapping.scanAndInject(basePackage);
+        HandlerMapping.getInstance().scanAndInject(basePackage);
     }
 
     @Override
@@ -53,17 +54,37 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-        Object result = InvocationProcessor.process(req);
+        boolean interceptorExisted = false;
+        InterceptorProcessor interceptor = InterceptorProcessor.getInstance();
+        if(interceptor.interceptorExisted()){
+            interceptorExisted = true;
+            if(!interceptor.preHandle(req,resp)){
+                System.out.println("request is intercepted...");
+                return;
+            }
+        }
+
+        Object result = InvocationProcessor.getInstance().process(req);
+        if(interceptorExisted){
+            interceptor.postHandle(req,resp,result);
+        }
+
+        Exception ex = null;
         try(PrintWriter writer = resp.getWriter()){
             writer.write(Objects.nonNull(result) ? result.toString() : "result is null");
         } catch (IOException e) {
+            ex = e;
             throw new ExceptionWrapper(e);
+        } finally {
+            if(interceptorExisted){
+                interceptor.afterCompletion(req,resp,result,ex);
+            }
         }
     }
 
     @Override
     public void destroy() {
-        DependencyInjectProcessor.destroy();
+        DependencyInjectProcessor.getInstance().destroy();
         super.destroy();
     }
 

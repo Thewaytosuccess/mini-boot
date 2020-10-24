@@ -21,13 +21,21 @@ import static com.mvc.enums.constant.ConstantPool.URL_SEPARATOR;
  */
 public class DataBindingProcessor {
 
+    private static final DataBindingProcessor PROCESSOR = new DataBindingProcessor();
+
+    private DataBindingProcessor(){}
+
+    public static DataBindingProcessor getInstance(){
+        return PROCESSOR;
+    }
+
     /**
      * 正则匹配uri，并将uri中的参数解析出来，保存到methodInfo中
      * @param map 注解中的uri和对应的方法的映射
      * @param uri 前端请求uri
      * @return 注解对应的方法信息
      */
-    public static MethodInfo patternMatch(Map<String, MethodInfo> map, String uri) {
+    public MethodInfo patternMatch(Map<String, MethodInfo> map, String uri) {
         if(!map.isEmpty()){
             List<String> list = map.keySet().stream().filter(e -> e.contains("{") && e.contains("}"))
                     .collect(Collectors.toList());
@@ -60,7 +68,7 @@ public class DataBindingProcessor {
      * @param uri 前端请求uri
      * @return 提取的路径中的参数
      */
-    private static List<String> getValues(List<String> separators, String uri) {
+    private List<String> getValues(List<String> separators, String uri) {
         for(String s:separators){
             if(!s.equals(URL_SEPARATOR)){
                 if(s.startsWith(URL_SEPARATOR) && s.endsWith(URL_SEPARATOR)){
@@ -78,7 +86,7 @@ public class DataBindingProcessor {
      * @param values 参数值，来自于前端uri
      * @return 参数名和参数值的映射
      */
-    private static Map<String,String> getParameterMap(List<String> names, List<String> values) {
+    private Map<String,String> getParameterMap(List<String> names, List<String> values) {
         Map<String,String> map = new HashMap<>(16);
         for(int i=0,len = values.size();i < len ; ++i){
             map.put(names.get(i),values.get(i));
@@ -93,7 +101,7 @@ public class DataBindingProcessor {
      * @param separators uri中提取的分隔符
      * @return 正则表达式
      */
-    private static String toRegExp(String uri, List<String> names, List<String> separators){
+    private String toRegExp(String uri, List<String> names, List<String> separators){
         StringBuilder sb = new StringBuilder("^");
         StringBuilder name = new StringBuilder();
         StringBuilder separator = new StringBuilder();
@@ -133,7 +141,7 @@ public class DataBindingProcessor {
      * @param request request对象
      * @return json串
      */
-    public static String getRequestJson(HttpServletRequest request){
+    public String getRequestJson(HttpServletRequest request){
         try (ServletInputStream inputStream = request.getInputStream()){
             //json request
             if(Objects.nonNull(inputStream)){
@@ -156,7 +164,7 @@ public class DataBindingProcessor {
      * @param array 参数值
      * @param e 方法中的参数
      */
-    public static void setValue(String[] array, Param e){
+    public void setValue(String[] array, Param e){
         Class<?> type = e.getType();
         if(Integer.class == type){
             e.setValue(Integer.valueOf(array[0]));
@@ -182,7 +190,7 @@ public class DataBindingProcessor {
      * @param map 前端请求参数
      * @param p 方法参数
      */
-    public static void setValue(Map<String,String[]> map,Param p){
+    public void setValue(Map<String,String[]> map,Param p){
         Class<?> clazz = p.getType();
         Field[] declaredFields = clazz.getDeclaredFields();
         JSONObject json = new JSONObject();

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -21,34 +22,45 @@ import static com.mvc.enums.constant.ConstantPool.*;
  */
 public class ConfigurationProcessor {
 
-    private static final Properties PROPERTIES = new Properties();
+    private static final ConfigurationProcessor PROCESSOR = new ConfigurationProcessor();
 
-    private static Map<String,Object> CONFIG_MAP = new ConcurrentHashMap<>();
+    private ConfigurationProcessor(){}
+
+    public static ConfigurationProcessor getInstance(){
+        return PROCESSOR;
+    }
+
+    private Properties properties;
+
+    private Map<String,Object> configMap;
 
     /**
      * 加载properties配置文件
      * @param configLocation 配置文件位置
      * @return 配置
      */
-    public static Properties loadConfig(String configLocation) {
+    public Properties loadConfig(String configLocation) {
         if(Objects.isNull(configLocation) || configLocation.isEmpty()){
             configLocation = CONFIG_PATH;
         }
         try (InputStream stream = HandlerMapping.class.getClassLoader().getResourceAsStream(configLocation)){
             if(Objects.nonNull(stream)){
-                PROPERTIES.load(stream);
+                if(Objects.isNull(properties)){
+                    properties = new Properties();
+                }
+                properties.load(stream);
             }
         } catch (IOException e) {
             throw new ExceptionWrapper(e);
         }
-        return PROPERTIES;
+        return properties;
     }
 
     /**
      * 注入配置
      * @param instance 实例
      */
-    public static void inject(Object instance){
+    public void inject(Object instance){
         if (instance.getClass().isAnnotationPresent(ConfigurationProperties.class)){
             injectByName(instance);
         } else {
@@ -56,31 +68,38 @@ public class ConfigurationProcessor {
         }
     }
 
-    private static void injectByName(Object instance){
+    private void injectByName(Object instance){
         ConfigurationProperties config = instance.getClass().getAnnotation(ConfigurationProperties.class);
         String prefix = config.prefix();
         if(prefix.isEmpty()){
             throw new RuntimeException();
         }
-        if(!CONFIG_MAP.isEmpty()){
-            CONFIG_MAP.clear();
+        if(Objects.isNull(configMap)){
+            configMap = new HashMap<>(16);
         }
-        PROPERTIES.forEach((k,v) -> {
+
+        if(!configMap.isEmpty()){
+            configMap.clear();
+        }
+        properties.forEach((k, v) -> {
             if(String.valueOf(k).startsWith(prefix)){
-                CONFIG_MAP.put(String.valueOf(k),v);
+                configMap.put(String.valueOf(k),v);
             }
         });
         setConfigValue(instance,prefix);
     }
 
-    private static void injectByAnnotation(Object instance){
-        if(CONFIG_MAP.size() != PROPERTIES.size()){
-            PROPERTIES.forEach((k,v) -> CONFIG_MAP.put(String.valueOf(k),v));
+    private void injectByAnnotation(Object instance){
+        if(Objects.isNull(configMap)){
+            configMap = new HashMap<>(16);
+        }
+        if(configMap.size() != properties.size()){
+            properties.forEach((k, v) -> configMap.put(String.valueOf(k),v));
         }
         setConfigValue(instance);
     }
 
-    private static void setConfigValue(Object instance,String prefix){
+    private void setConfigValue(Object instance,String prefix){
         Field[] declaredFields = instance.getClass().getDeclaredFields();
         StringBuilder name = new StringBuilder(prefix);
         if(!name.toString().endsWith(PATH_SEPARATOR)){
@@ -96,7 +115,7 @@ public class ConfigurationProcessor {
                 setValueByAnnotation(f,instance);
             }else{
                 try {
-                    value = CONFIG_MAP.get(name.append(f.getName()).toString());
+                    value = configMap.get(name.append(f.getName()).toString());
                     if(Objects.nonNull(value)){
                         f.setAccessible(true);
                         f.set(instance,value);
@@ -116,10 +135,10 @@ public class ConfigurationProcessor {
     /**
      * 将配置名称的中划线转化为驼峰命名法
      */
-    private static void strikeThroughToCamelCase(){
+    private void strikeThroughToCamelCase(){
         Map<String,Object> map = new ConcurrentHashMap<>(16);
         StringBuilder builder = new StringBuilder();
-        CONFIG_MAP.forEach((k,v) -> {
+        configMap.forEach((k, v) -> {
             if(k.contains(PATH_SEPARATOR)){
                 if((k.length() - 1) != k.lastIndexOf(PATH_SEPARATOR)){
                     String suffix = k.substring(k.lastIndexOf(PATH_SEPARATOR) + 1);
@@ -150,10 +169,10 @@ public class ConfigurationProcessor {
                 }
             }
         });
-        CONFIG_MAP = map;
+        configMap = map;
     }
 
-    private static void setConfigValue(Object instance){
+    private void setConfigValue(Object instance){
         Field[] declaredFields = instance.getClass().getDeclaredFields();
         for(Field f:declaredFields) {
             if (f.isAnnotationPresent(Value.class)) {
@@ -162,14 +181,14 @@ public class ConfigurationProcessor {
         }
     }
 
-    private static void setValueByAnnotation(Field f,Object instance){
+    private void setValueByAnnotation(Field f,Object instance){
         Value value = f.getAnnotation(Value.class);
         String key = value.value();
         try{
             f.setAccessible(true);
             if (key.startsWith(KEY_PREFIX) && key.endsWith(KEY_SUFFIX)) {
                 key = key.substring(2, key.length() - 1);
-                f.set(instance,CONFIG_MAP.get(key));
+                f.set(instance, configMap.get(key));
             } else {
                 f.set(instance,key);
             }
@@ -179,7 +198,7 @@ public class ConfigurationProcessor {
     }
 
     @Deprecated
-    public static void setValue(String key,Object value,Field f,Object instance){
+    public void setValue(String key,Object value,Field f,Object instance){
         //直接将注解中的默认值注入进去
         if (!key.isEmpty()) {
             String name = f.getName();
@@ -205,7 +224,7 @@ public class ConfigurationProcessor {
     }
 
     @Deprecated
-    public static void print(Object obj){
+    public void print(Object obj){
         Class<?> clazz = obj.getClass();
         Method[] methods = clazz.getDeclaredMethods();
         for(Method m:methods){

@@ -20,9 +20,18 @@ import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
  */
 public class InvocationProcessor {
 
-    public static Object process(HttpServletRequest request) {
-        MethodInfo methodInfo = HandlerMapping.getMethodInfo(request.getRequestURI(),request.getMethod());
+    private static final InvocationProcessor PROCESSOR = new InvocationProcessor();
+
+    private InvocationProcessor(){}
+
+    public static InvocationProcessor getInstance(){ return PROCESSOR; }
+
+    public Object process(HttpServletRequest request) {
+        MethodInfo methodInfo = HandlerMapping.getInstance().getMethodInfo(request.getRequestURI(),
+                request.getMethod());
         System.out.println("METHOD === "+methodInfo);
+
+        DataBindingProcessor dataBindingProcessor = DataBindingProcessor.getInstance();
         if(Objects.nonNull(methodInfo)){
             List<Param> params = methodInfo.getParams();
             Map<String, String[]> parameterMap = request.getParameterMap();
@@ -31,14 +40,14 @@ public class InvocationProcessor {
                     String[] values = parameterMap.get(e.getName());
                     if(Objects.nonNull(values) && values.length > 0){
                         //前端参数能够和后端接口参数一一映射，则建立映射
-                        DataBindingProcessor.setValue(values,e);
+                        dataBindingProcessor.setValue(values,e);
                     }else{
                         //否则，将前端所有参数映射成接口需要的一个对象
-                        DataBindingProcessor.setValue(parameterMap,e);
+                        dataBindingProcessor.setValue(parameterMap,e);
                     }
                 });
             }else{
-                String requestJson = DataBindingProcessor.getRequestJson(request);
+                String requestJson = dataBindingProcessor.getRequestJson(request);
                 if(Objects.nonNull(requestJson) && !requestJson.isEmpty()){
                     Param param = params.get(0);
                     if(Objects.nonNull(param)){
@@ -51,7 +60,7 @@ public class InvocationProcessor {
         return null;
     }
 
-    private static Object invoke(MethodInfo methodInfo){
+    private Object invoke(MethodInfo methodInfo){
         if(Objects.nonNull(methodInfo)){
             String methodName = methodInfo.getMethodName();
             List<Param> params = methodInfo.getParams();
@@ -60,7 +69,8 @@ public class InvocationProcessor {
                 Class<?> clazz = Class.forName(methodName.substring(0, index));
                 //从ioc容器中查询实例
                 return clazz.getDeclaredMethod(methodName.substring(index + 1), params.stream().map(Param::getType).toArray(Class[]::new))
-                        .invoke(DependencyInjectProcessor.getInstance(clazz),params.stream().map(Param::getValue).toArray(Object[]::new));
+                        .invoke(DependencyInjectProcessor.getInstance().getClassInstance(clazz),
+                                params.stream().map(Param::getValue).toArray(Object[]::new));
             } catch (Exception e) {
                 throw new ExceptionWrapper(e);
             }

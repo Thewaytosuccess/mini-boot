@@ -1,16 +1,17 @@
 package com.mvc.util.proxy;
 
 import com.mvc.entity.method.Signature;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
@@ -19,13 +20,13 @@ import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
  */
 public class ProceedingJoinPoint {
 
-    private static final Map<Signature,String> BEFORE_MAP = new ConcurrentHashMap<>();
+    private Map<Signature,String> beforeMap;
 
-    private static final Map<Signature,String> AFTER_MAP = new ConcurrentHashMap<>();
+    private Map<Signature,String> afterMap;
 
-    private static final Map<Signature,String> AFTER_RETURNING_MAP = new ConcurrentHashMap<>();
+    private Map<Signature,String> afterReturningMap;
 
-    private static final Map<Signature,String> AFTER_THROWING_MAP = new ConcurrentHashMap<>();
+    private Map<Signature,String> afterThrowingMap;
 
     /**
      * 被代理对象
@@ -69,22 +70,37 @@ public class ProceedingJoinPoint {
         methods.forEach(e -> {
             switch (e.getAdviceEnum()){
                 case Before:
+                    if(Objects.isNull(beforeMap)){
+                        beforeMap = new HashMap<>(16);
+                    }
                     //remove duplicate
-                    if(Objects.isNull(BEFORE_MAP.get(e))){
-                        BEFORE_MAP.put(e,e.getAdviceMethod());
+                    if(Objects.isNull(beforeMap.get(e))){
+                        beforeMap.put(e,e.getAdviceMethod());
                     }
                     break;
                 case After:
-                    AFTER_MAP.put(e,e.getAdviceMethod());
+                    if(Objects.isNull(afterMap)){
+                        afterMap = new HashMap<>(16);
+                    }
+                    afterMap.put(e,e.getAdviceMethod());
                     break;
                 case AfterReturning:
-                    AFTER_RETURNING_MAP.put(e,e.getAdviceMethod());
+                    if(Objects.isNull(afterReturningMap)){
+                        afterReturningMap = new HashMap<>(16);
+                    }
+                    afterReturningMap.put(e,e.getAdviceMethod());
                     break;
                 case AfterThrowing:
-                    AFTER_THROWING_MAP.put(e,e.getAdviceMethod());
+                    if(Objects.isNull(afterThrowingMap)){
+                        afterThrowingMap = new HashMap<>(16);
+                    }
+                    afterThrowingMap.put(e,e.getAdviceMethod());
                     break;
                 case Around:
-                    BEFORE_MAP.put(e,e.getAdviceMethod());
+                    if(Objects.isNull(beforeMap)){
+                        beforeMap = new HashMap<>(16);
+                    }
+                    beforeMap.put(e,e.getAdviceMethod());
                     break;
                 default:
                     throw new IllegalStateException("Unexpected value: " + e.getAdviceEnum());
@@ -93,7 +109,7 @@ public class ProceedingJoinPoint {
     }
 
     protected Object handle(){
-        String methodName = BEFORE_MAP.get(getSignature());
+        String methodName = beforeMap.get(getSignature());
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             handle(methodName);
         }else{
@@ -109,7 +125,7 @@ public class ProceedingJoinPoint {
     }
 
     protected Object preHandle(){
-        String proxyMethod = BEFORE_MAP.get(getSignature());
+        String proxyMethod = beforeMap.get(getSignature());
         if(Objects.nonNull(proxyMethod) && !proxyMethod.isEmpty()){
             Class<?>[] argTypes = new Class[]{this.getClass().getSuperclass().getSuperclass()};
             Object[] args = new Object[]{this};
@@ -120,14 +136,14 @@ public class ProceedingJoinPoint {
     }
 
     private void afterReturningHandle(Signature signature){
-        String methodName = AFTER_RETURNING_MAP.get(signature);
+        String methodName = afterReturningMap.get(signature);
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             handle(methodName);
         }
     }
 
     private Object afterThrowingHandle(Signature signature,Exception e){
-        String methodName = AFTER_THROWING_MAP.get(signature);
+        String methodName = afterThrowingMap.get(signature);
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             return handle(methodName,new Class[]{Exception.class},new Object[]{e});
         }
@@ -135,7 +151,7 @@ public class ProceedingJoinPoint {
     }
 
     private void afterHandle(Signature signature){
-        String methodName = AFTER_MAP.get(signature);
+        String methodName = afterMap.get(signature);
         if(Objects.nonNull(methodName) && !methodName.isEmpty()){
             handle(methodName);
         }
@@ -143,9 +159,9 @@ public class ProceedingJoinPoint {
 
     private Signature getSignature() {
         Signature info = new Signature();
-        String classImpl = AspectProcessor.getClassImpl(method.getDeclaringClass());
+        String classImpl = AspectProcessor.getInstance().getClassImpl(method.getDeclaringClass());
         if(Objects.isNull(classImpl) || classImpl.isEmpty()){
-            throw new RuntimeException();
+            throw new ExceptionWrapper(ExceptionEnum.CLASS_IMPL_NOT_FOUND);
         }
         info.setMethodName(classImpl + ConstantPool.PATH_SEPARATOR + method.getName());
         info.setParameterCount(method.getParameterCount());
@@ -165,9 +181,10 @@ public class ProceedingJoinPoint {
                 //从ioc容器中查询实例
                 if(Objects.nonNull(args) && Objects.nonNull(argTypes) && args.length > 0 && argTypes.length > 0){
                     return clazz.getDeclaredMethod(method.substring(index + 1),argTypes)
-                            .invoke(DependencyInjectProcessor.getInstance(clazz), args);
+                            .invoke(DependencyInjectProcessor.getInstance().getClassInstance(clazz), args);
                 }else{
-                    return clazz.getDeclaredMethod(method.substring(index + 1)).invoke(DependencyInjectProcessor.getInstance(clazz));
+                    return clazz.getDeclaredMethod(method.substring(index + 1)).invoke(
+                            DependencyInjectProcessor.getInstance().getClassInstance(clazz));
                 }
             } catch (Exception e) {
                 throw new ExceptionWrapper(e);

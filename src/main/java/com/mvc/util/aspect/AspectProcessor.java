@@ -21,36 +21,42 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
 /**
- * todo 基于类和注解的切面，拦截器
  * @author xhzy
  */
 public class AspectProcessor {
 
+    private static final AspectProcessor PROCESSOR = new AspectProcessor();
+
+    private AspectProcessor(){}
+
+    public static AspectProcessor getInstance(){
+        return PROCESSOR;
+    }
+
     /**
      * 实现类和接口的映射
      */
-    private static final Map<String,Class<?>[]> CLASS_IMPL_INTERFACES_MAP = new ConcurrentHashMap<>();
+    private Map<String,Class<?>[]> classImplInterfacesMap;
 
     /**
      * 代理对象和连接点的映射
      */
-    private static final Map<Class<?>, ProceedingJoinPoint> PROXY_JOIN_POINT_MAP = new ConcurrentHashMap<>();
+    private Map<Class<?>, ProceedingJoinPoint> proxyJoinPointMap;
 
     /**
      * 注解和切面方法的映射
      */
-    private static final Map<Class<?>,Signature> ANNOTATION_METHOD_MAP = new ConcurrentHashMap<>();
+    private Map<Class<?>,Signature> annotationMethodMap;
 
     /**
      * 类和其内所有带切面注解的方法的映射
      */
-    private static final Map<Class<?>,List<Signature>> CLASS_METHOD_MAP = new ConcurrentHashMap<>();
+    private Map<Class<?>,List<Signature>> classMethodMap;
 
     /**
      * 解析execution表达式
@@ -59,7 +65,7 @@ public class AspectProcessor {
      *  2.cglib动态代理
      *  3.javassist动态代理
      */
-    public static void process(Class<?> clazz) {
+    public void process(Class<?> clazz) {
         if(clazz.isAnnotationPresent(Aspect.class)){
             Method[] declaredMethods = clazz.getDeclaredMethods();
             String adviceMethod;
@@ -80,34 +86,43 @@ public class AspectProcessor {
         }
     }
 
-    public static void createProxy(List<Signature> methods) {
-        methods.forEach(AspectProcessor::buildClassMethodMap);
+    public void createProxy(List<Signature> methods) {
+        methods.forEach(this::buildClassMethodMap);
         createProxy();
     }
 
-    public static void createProxy(){
+    public void createProxy(){
         //统一异常处理
-        ControllerAdviceHandler.handle().forEach(AspectProcessor::buildClassMethodMap);
-        CLASS_METHOD_MAP.forEach(AspectProcessor::createProxy);
+        ControllerAdviceHandler.getInstance().handle().forEach(this::buildClassMethodMap);
+        if(Objects.isNull(classMethodMap)){
+            return;
+        }
+        classMethodMap.forEach(this::createProxy);
     }
 
-    public static boolean reInjected(){
-        return !CLASS_IMPL_INTERFACES_MAP.isEmpty();
+    public boolean reInjected(){
+        if(Objects.isNull(classImplInterfacesMap)){
+            return false;
+        }
+        return !classImplInterfacesMap.isEmpty();
     }
 
-    public static boolean rescan(){
-        return !ANNOTATION_METHOD_MAP.isEmpty();
+    public boolean rescan(){
+        if(Objects.isNull(annotationMethodMap)){
+            return false;
+        }
+        return !annotationMethodMap.isEmpty();
     }
 
-    public static Map<String,Class<?>[]> getReInjected(){
-        return CLASS_IMPL_INTERFACES_MAP;
+    public Map<String,Class<?>[]> getReInjected(){
+        return classImplInterfacesMap;
     }
 
-    public static Map<Class<?>,Signature> getAnnotationMethodMap(){ return ANNOTATION_METHOD_MAP; }
+    public Map<Class<?>,Signature> getAnnotationMethodMap(){ return annotationMethodMap; }
 
-    public static String getClassImpl(Class<?> interfaceClass){
+    public String getClassImpl(Class<?> interfaceClass){
         //jdk proxy
-        for(Map.Entry<String,Class<?>[]> e: CLASS_IMPL_INTERFACES_MAP.entrySet()){
+        for(Map.Entry<String,Class<?>[]> e: classImplInterfacesMap.entrySet()){
             for(Class<?> c:e.getValue()){
                 if(c == interfaceClass){
                     return e.getKey();
@@ -116,7 +131,7 @@ public class AspectProcessor {
         }
 
         //cglib proxy
-        for(Map.Entry<String,Class<?>[]> e: CLASS_IMPL_INTERFACES_MAP.entrySet()){
+        for(Map.Entry<String,Class<?>[]> e: classImplInterfacesMap.entrySet()){
             try {
                 if(Class.forName(e.getKey()) == interfaceClass){
                     return e.getKey();
@@ -128,14 +143,14 @@ public class AspectProcessor {
         return null;
     }
 
-    private static void createProxy(Class<?> targetClass,List<Signature> list){
+    private void createProxy(Class<?> targetClass,List<Signature> list){
         try {
-            Object target = DependencyInjectProcessor.getInstance(targetClass);
+            Object target = DependencyInjectProcessor.getInstance().getClassInstance(targetClass);
             if(Objects.nonNull(target)){
                 //判断是否已经创建过代理
                 if(targetClass != target.getClass()){
                     //已经创建过代理类
-                    PROXY_JOIN_POINT_MAP.get(target.getClass()).setMethod(list);
+                    proxyJoinPointMap.get(target.getClass()).setMethod(list);
                     return;
                 }
 
@@ -156,7 +171,10 @@ public class AspectProcessor {
                 }
 
                 //建立实现类和接口的映射
-                CLASS_IMPL_INTERFACES_MAP.put(targetClass.getName(),interfaces);
+                if(Objects.isNull(classImplInterfacesMap)){
+                    classImplInterfacesMap = new HashMap<>(1);
+                }
+                classImplInterfacesMap.put(targetClass.getName(),interfaces);
                 //创建代理对象
                 Object proxy;
                 if(flag){
@@ -166,7 +184,7 @@ public class AspectProcessor {
                 }
 
                 //将代理对象注入到ioc容器
-                DependencyInjectProcessor.replace(targetClass,proxy);
+                DependencyInjectProcessor.getInstance().replace(targetClass,proxy);
             }else{
                 throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
@@ -175,32 +193,38 @@ public class AspectProcessor {
         }
     }
 
-    private static Object createProxy(Object target, List<Signature> info, ClassLoader classLoader,
+    private Object createProxy(Object target, List<Signature> info, ClassLoader classLoader,
                                       Class<?>[] interfaces, boolean jdkProxy){
+        if(Objects.isNull(proxyJoinPointMap)){
+            proxyJoinPointMap = new HashMap<>(16);
+        }
         Object proxy;
         if(jdkProxy){
             JdkProxy proxyClass = new JdkProxy(target,info,true);
             proxy = Proxy.newProxyInstance(classLoader, interfaces, proxyClass);
-            PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
+            proxyJoinPointMap.put(proxy.getClass(),proxyClass);
         }else{
             CglibProxy proxyClass = new CglibProxy(target,info, false);
             proxy = proxyClass.getProxy();
-            PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
+            proxyJoinPointMap.put(proxy.getClass(),proxyClass);
         }
         return proxy;
     }
 
-    private static Object createAroundProxy(Object target, List<Signature> methods, ClassLoader classLoader,
+    private Object createAroundProxy(Object target, List<Signature> methods, ClassLoader classLoader,
                                             Class<?>[] interfaces, boolean jdkProxy){
+        if(Objects.isNull(proxyJoinPointMap)){
+            proxyJoinPointMap = new HashMap<>(16);
+        }
         Object proxy;
         if(jdkProxy){
             JdkProxy proxyClass = new JdkAroundProxy(target,methods, true);
             proxy = Proxy.newProxyInstance(classLoader, interfaces, proxyClass);
-            PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
+            proxyJoinPointMap.put(proxy.getClass(),proxyClass);
         }else{
             CglibProxy proxyClass = new CglibAroundProxy(target,methods, false);
             proxy = proxyClass.getProxy();
-            PROXY_JOIN_POINT_MAP.put(proxy.getClass(),proxyClass);
+            proxyJoinPointMap.put(proxy.getClass(),proxyClass);
         }
         return proxy;
     }
@@ -210,7 +234,7 @@ public class AspectProcessor {
      * @param execution execution表达式
      * eg:[public com.mvc.Class.method(pType pName...)]
      */
-    private static void parseExpression(String execution, String adviceMethod, AdviceEnum adviceEnum) {
+    private void parseExpression(String execution, String adviceMethod, AdviceEnum adviceEnum) {
         if(!execution.isEmpty()){
             if(execution.startsWith(ConstantPool.EXECUTION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
                 parseExecutionExpression(execution).forEach(e -> {
@@ -225,7 +249,7 @@ public class AspectProcessor {
         }
     }
 
-    private static Set<Signature> parseExecutionExpression(String execution){
+    private Set<Signature> parseExecutionExpression(String execution){
         execution = execution.substring(10, execution.length() - 1);
         String[] split = execution.split(" ");
         if(split.length != ConstantPool.TWO){
@@ -240,7 +264,7 @@ public class AspectProcessor {
         }
     }
 
-    private static void parseAnnotationExpression(String execution, String methodName, AdviceEnum adviceEnum) {
+    private void parseAnnotationExpression(String execution, String methodName, AdviceEnum adviceEnum) {
         execution = execution.substring(12, execution.length() - 1);
         if(execution.isEmpty()){
             throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
@@ -253,7 +277,11 @@ public class AspectProcessor {
                 Signature signature = new Signature();
                 signature.setAdviceMethod(methodName);
                 signature.setAdviceEnum(adviceEnum);
-                ANNOTATION_METHOD_MAP.put(clazz,signature);
+
+                if(Objects.isNull(annotationMethodMap)){
+                    annotationMethodMap = new HashMap<>(16);
+                }
+                annotationMethodMap.put(clazz,signature);
             }else{
                 throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
@@ -262,7 +290,7 @@ public class AspectProcessor {
         }
     }
 
-    public static String toRegExp(String exp){
+    public String toRegExp(String exp){
         StringBuilder builder = new StringBuilder("^");
         String[] split = exp.split("\\.");
         for(String str:split){
@@ -276,7 +304,7 @@ public class AspectProcessor {
         return builder.toString();
     }
 
-    private static Set<Signature> setMethodNameAndParameters(String s) {
+    private Set<Signature> setMethodNameAndParameters(String s) {
         String[] split = s.split("\\(");
         if(split.length == ConstantPool.TWO){
             Set<Signature> methods = new HashSet<>();
@@ -285,13 +313,14 @@ public class AspectProcessor {
             String className = parts[len - 2];
             String methodName = parts[len - 1];
 
+            AspectHandler aspectHandler = AspectHandler.getInstance();
             if(className.contains(ConstantPool.ANY)){
                 if(className.equals(ConstantPool.ANY)){
                     int index = split[0].length() - className.length() - methodName.length() - 2;
-                    AspectHandler.classScan(split[0].substring(0,index), methods);
+                    aspectHandler.classScan(split[0].substring(0,index), methods);
                 }else{
                     //pattern match
-                    AspectHandler.patternClassScan(split[0].substring(0,split[0].lastIndexOf(".")), methods);
+                    aspectHandler.patternClassScan(split[0].substring(0,split[0].lastIndexOf(".")), methods);
                 }
             }
 
@@ -301,7 +330,7 @@ public class AspectProcessor {
                     if(methods.isEmpty()){
                         try {
                             Class<?> clazz = Class.forName(split[0].substring(0,split[0].lastIndexOf(".")));
-                            AspectHandler.methodScan(clazz, methods);
+                            aspectHandler.methodScan(clazz, methods);
                         } catch (ClassNotFoundException e) {
                             e.printStackTrace();
                         }
@@ -309,7 +338,7 @@ public class AspectProcessor {
                 }else{
                     //pattern match
                     if(methods.isEmpty()){
-                        AspectHandler.patternMethodScan(split[0], methods,true);
+                        aspectHandler.patternMethodScan(split[0], methods,true);
                     }else{
                         methods = methods.stream().filter(e -> e.getMethodName().matches(
                                 toRegExp(split[0]))).collect(Collectors.toSet());
@@ -317,7 +346,7 @@ public class AspectProcessor {
                 }
             }else {
                 if(methods.isEmpty()){
-                    AspectHandler.patternMethodScan(split[0], methods,false);
+                    aspectHandler.patternMethodScan(split[0], methods,false);
                 }else{
                     methods = methods.stream().filter(e -> e.getMethodName().endsWith(methodName)).
                             collect(Collectors.toSet());
@@ -330,7 +359,7 @@ public class AspectProcessor {
             } else if (ConstantPool.ANY_PARAM.equals(param)) {
                 //类下的指定方法
                 if(methods.isEmpty()){
-                    AspectHandler.patternMethodScan(split[0], methods,false);
+                    aspectHandler.patternMethodScan(split[0], methods,false);
                 }
             } else {
                 //根据参数精确匹配
@@ -342,7 +371,7 @@ public class AspectProcessor {
         }
     }
 
-    private static String[] getParts(String[] split) {
+    private String[] getParts(String[] split) {
         if(!split[1].endsWith(ConstantPool.RIGHT_BRACKET)){
             throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
@@ -354,23 +383,27 @@ public class AspectProcessor {
         return parts;
     }
 
-    private static void buildClassMethodMap(Signature signature){
+    private void buildClassMethodMap(Signature signature){
         try{
             String methodName = signature.getMethodName();
             Class<?> key = Class.forName(methodName.substring(0, methodName.lastIndexOf(PATH_SEPARATOR)));
-            List<Signature> methods = CLASS_METHOD_MAP.get(key);
+            if(Objects.isNull(classMethodMap)){
+                classMethodMap = new HashMap<>();
+            }
+
+            List<Signature> methods = classMethodMap.get(key);
             if(Objects.isNull(methods)){
                 methods = new ArrayList<>();
             }
             methods.add(signature);
-            CLASS_METHOD_MAP.put(key,methods);
+            classMethodMap.put(key,methods);
         }catch (Exception e){
             throw new ExceptionWrapper(e);
         }
     }
 
     @Deprecated
-    public static void setModifiers(MethodInfo info,String s){
+    public void setModifiers(MethodInfo info,String s){
         if(ModifiersEnum.PUBLIC.getKey().equals(s)){
             info.setModifiers(Modifier.PUBLIC);
         }else if(ModifiersEnum.PRIVATE.getKey().equals(s)){

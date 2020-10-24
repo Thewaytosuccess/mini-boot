@@ -16,10 +16,18 @@ import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
  */
 public class AspectHandler {
 
-    public static void reInject(){
-        if(AspectProcessor.reInjected()){
+    private static final AspectHandler HANDLER = new AspectHandler();
+
+    private AspectHandler(){}
+
+    public static AspectHandler getInstance(){
+        return HANDLER;
+    }
+
+    public void reInject(){
+        if(AspectProcessor.getInstance().reInjected()){
             Set<Class<?>> classes = new HashSet<>();
-            Map<String, Class<?>[]> reInjected = AspectProcessor.getReInjected();
+            Map<String, Class<?>[]> reInjected = AspectProcessor.getInstance().getReInjected();
             reInjected.forEach((k,v) -> {
                 try {
                     classes.add(Class.forName(k));
@@ -37,34 +45,35 @@ public class AspectHandler {
         }
     }
 
-    private static void reInject(Class<?> clazz, Set<Class<?>> classes){
+    private void reInject(Class<?> clazz, Set<Class<?>> classes){
         try {
-            DependencyInjectProcessor.reInject(clazz,classes);
+            DependencyInjectProcessor.getInstance().reInject(clazz,classes);
         } catch (Exception e) {
             throw new ExceptionWrapper(e);
         }
     }
 
-    private static List<Class<?>> getClasses(){
-        return HandlerMapping.getClasses();
+    private List<Class<?>> getClasses(){
+        return HandlerMapping.getInstance().getClasses();
     }
 
-    public static void createProxy() {
-        if(AspectProcessor.rescan()){
+    public void createProxy() {
+        AspectProcessor aspectProcessor = AspectProcessor.getInstance();
+        if(aspectProcessor.rescan()){
             //为携带切面注解的方法生成代理
-            Map<Class<?>, Signature> annotationMethodMap = AspectProcessor.getAnnotationMethodMap();
+            Map<Class<?>, Signature> annotationMethodMap = aspectProcessor.getAnnotationMethodMap();
             if(!annotationMethodMap.isEmpty()){
                 Set<Class<?>> annotations = annotationMethodMap.keySet();
                 List<Signature> methods = new ArrayList<>();
                 getClasses().forEach(e -> getAnnotatedMethod(e,annotations,annotationMethodMap, methods));
-                AspectProcessor.createProxy(methods);
+                aspectProcessor.createProxy(methods);
             }
         }else{
-            AspectProcessor.createProxy();
+            aspectProcessor.createProxy();
         }
     }
 
-    private static void getAnnotatedMethod(Class<?> clazz, Set<Class<?>> annotations,
+    private void getAnnotatedMethod(Class<?> clazz, Set<Class<?>> annotations,
                                            Map<Class<?>, Signature> annotationMethodMap,
                                            List<Signature> classes) {
         Method[] declaredMethods = clazz.getDeclaredMethods();
@@ -84,7 +93,7 @@ public class AspectHandler {
         }
     }
 
-    public static void methodScan(Class<?> clazz, Set<Signature> list) {
+    public void methodScan(Class<?> clazz, Set<Signature> list) {
         Method[] methods = clazz.getDeclaredMethods();
         for(Method m:methods){
             list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
@@ -92,23 +101,23 @@ public class AspectHandler {
         }
     }
 
-    public static void classScan(String packageName, Set<Signature> list) {
+    public void classScan(String packageName, Set<Signature> list) {
         getClasses().stream().filter(e -> e.getName().startsWith(packageName)).forEach(e -> methodScan(e, list));
     }
 
-    public static void patternClassScan(String className, Set<Signature> list) {
-        getClasses().stream().filter(e -> e.getName().matches(AspectProcessor.toRegExp(className))).
+    public void patternClassScan(String className, Set<Signature> list) {
+        getClasses().stream().filter(e -> e.getName().matches(AspectProcessor.getInstance().toRegExp(className))).
                 forEach(e -> methodScan(e, list));
     }
 
-    public static void patternMethodScan(String methodName, Set<Signature> list, boolean patternMatch) {
+    public void patternMethodScan(String methodName, Set<Signature> list, boolean patternMatch) {
         int index = methodName.lastIndexOf(".");
         String className = methodName.substring(0,index);
         getClasses().stream().filter(e -> e.getName().equals(className)).forEach(e -> {
             Method[] methods = e.getDeclaredMethods();
             for(Method m:methods){
                 if(patternMatch){
-                    if(m.getName().matches(AspectProcessor.toRegExp(methodName.substring(index + 1)))){
+                    if(m.getName().matches(AspectProcessor.getInstance().toRegExp(methodName.substring(index + 1)))){
                         list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
                                 className + PATH_SEPARATOR + m.getName()));
                     }
