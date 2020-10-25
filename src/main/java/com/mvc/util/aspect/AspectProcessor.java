@@ -332,7 +332,7 @@ public class AspectProcessor {
                             Class<?> clazz = Class.forName(split[0].substring(0,split[0].lastIndexOf(".")));
                             aspectHandler.methodScan(clazz, methods);
                         } catch (ClassNotFoundException e) {
-                            e.printStackTrace();
+                            throw new ExceptionWrapper(e);
                         }
                     }
                 }else{

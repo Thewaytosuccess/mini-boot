@@ -59,10 +59,10 @@ public class AspectHandler {
         }
     }
 
-    public void methodScan(Class<?> clazz, Set<Signature> list) {
+    public void methodScan(Class<?> clazz, Set<Signature> set) {
         Method[] methods = clazz.getDeclaredMethods();
         for(Method m:methods){
-            list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+            set.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
                     clazz.getName() + PATH_SEPARATOR + m.getName()));
         }
     }

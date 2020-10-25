@@ -60,14 +60,14 @@ public class IocContainer {
 
     public List<Class<?>> getClasses(){
         if(Objects.isNull(classes)){
-            classes = new ArrayList<>();
+            return Collections.emptyList();
         }
         return classes;
     }
 
     public Object getClassInstance(Class<?> clazz){
         if(Objects.isNull(iocContainer)){
-            iocContainer = new HashMap<>(16);
+            return null;
         }
         return iocContainer.get(clazz);
     }
@@ -77,6 +77,9 @@ public class IocContainer {
      * 统一注册到map<url,package.class.method>
      */
     public void inject(){
+        if(Objects.isNull(classes)){
+            return;
+        }
         classes.forEach(clazz -> {
             try {
                 //待处理@Controller
@@ -123,6 +126,9 @@ public class IocContainer {
     }
 
     public void aspectScan() {
+        if(Objects.isNull(classes)){
+            return;
+        }
         classes.forEach(clazz -> {
             if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class)){
                 //aop,register aspect
@@ -141,6 +147,9 @@ public class IocContainer {
     }
 
     public void init(){
+        if(Objects.isNull(classes)){
+            return;
+        }
         classes.forEach(clazz -> {
             try {
                 Method[] declaredMethods = clazz.getDeclaredMethods();
@@ -161,6 +170,9 @@ public class IocContainer {
     }
 
     public void destroy(){
+        if(Objects.isNull(preDestroySet)){
+            return;
+        }
         preDestroySet.forEach(k -> {
             int index = k.lastIndexOf(ConstantPool.PATH_SEPARATOR);
             try {
@@ -174,6 +186,9 @@ public class IocContainer {
     }
 
     public List<Class<?>> getControllers() {
+        if(Objects.isNull(classes)){
+            return Collections.emptyList();
+        }
         return classes.stream().filter(e -> e.isAnnotationPresent(RestController.class) ||
                 e.isAnnotationPresent(Controller.class)).collect(Collectors.toList());
     }

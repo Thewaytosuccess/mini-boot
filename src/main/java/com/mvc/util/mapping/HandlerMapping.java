@@ -218,7 +218,7 @@ public class HandlerMapping {
      * 扫描指定包下的所有类
      */
     private void packageScan(String basePackage) {
-        URL resource = HandlerMapping.class.getClassLoader().getResource(URL_SEPARATOR + basePackage.
+        URL resource = this.getClass().getClassLoader().getResource(URL_SEPARATOR + basePackage.
                 replaceAll("\\.", URL_SEPARATOR));
         if(Objects.nonNull(resource)){
             File root = new File(resource.getFile());
