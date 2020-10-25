@@ -1,4 +1,4 @@
-package com.mvc.annotation.bean;
+package com.mvc.annotation.bean.ioc;
 
 import java.lang.annotation.*;
 

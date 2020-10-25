@@ -1,7 +1,7 @@
 package com.mvc.controller;
 
-import com.mvc.annotation.bean.Autowired;
-import com.mvc.annotation.bean.Qualifier;
+import com.mvc.annotation.bean.ioc.Autowired;
+import com.mvc.annotation.bean.ioc.Qualifier;
 import com.mvc.annotation.config.Value;
 import com.mvc.annotation.method.DeleteMapping;
 import com.mvc.annotation.method.GetMapping;
@@ -44,7 +44,6 @@ public class UserController {
 
     @RequestMapping("/logout")
     public Object logout(){
-        throw new IllegalArgumentException();
-        //return userService.getDataSourceConfig();
+        return userService.getDataSourceConfig();
     }
 }

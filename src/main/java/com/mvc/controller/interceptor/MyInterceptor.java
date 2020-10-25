@@ -9,13 +9,13 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * @author xhzy
  */
-@Interceptor(excludes = "/api/user/get")
+//@Interceptor(excludes = "/api/user/get")
 public class MyInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response) {
         System.out.println("uri ==="+request.getRequestURI());
-        return false;
+        return true;
     }
 
     @Override

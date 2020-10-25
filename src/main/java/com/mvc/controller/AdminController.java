@@ -1,6 +1,6 @@
 package com.mvc.controller;
 
-import com.mvc.annotation.bean.Resource;
+import com.mvc.annotation.bean.ioc.Resource;
 import com.mvc.annotation.config.Value;
 import com.mvc.annotation.method.DeleteMapping;
 import com.mvc.annotation.method.GetMapping;

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.mvc</groupId>
-    <artifactId>mvc-demo</artifactId>
+    <artifactId>mini-boot</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
 

@@ -1,4 +1,4 @@
-package com.mvc.annotation.bean;
+package com.mvc.annotation.bean.life;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Bean {
+public @interface PostConstruct {
 
-    String name() default "";
+    String value() default "";
 
 }

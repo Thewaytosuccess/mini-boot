@@ -1,4 +1,4 @@
-package com.mvc.annotation.bean;
+package com.mvc.annotation.bean.ioc;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface PreDestroy {
+public @interface Bean {
 
-    String value() default "";
+    String name() default "";
 
 }

@@ -5,13 +5,10 @@ import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
-import com.mvc.util.injection.DependencyInjectProcessor;
+import com.mvc.util.injection.IocContainer;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
@@ -56,13 +53,14 @@ public class ProceedingJoinPoint {
     public Object proceed(){
         Signature signature = getSignature();
         try{
-            return jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(method.getName(),
-                    method.getParameterTypes()).invoke(target,args);
+            Object result = jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(
+                    method.getName(), method.getParameterTypes()).invoke(target,args);
+            postHandle(signature);
+            return result;
         } catch (Exception e){
-            return afterThrowingHandle(signature,e);
+            return afterThrowing(signature,e);
         } finally {
-            afterHandle(signature);
-            afterReturningHandle(signature);
+            afterCompletion(signature);
         }
     }
 
@@ -109,11 +107,13 @@ public class ProceedingJoinPoint {
     }
 
     protected Object handle(){
-        String methodName = beforeMap.get(getSignature());
-        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-            handle(methodName);
-        }else{
-            System.out.println("method not found in before map = "+method.getName());
+        if(Objects.nonNull(beforeMap)){
+            String methodName = beforeMap.get(getSignature());
+            if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+                handle(methodName);
+            }else{
+                System.out.println("method not found in before map = "+method.getName());
+            }
         }
         return proceed();
     }
@@ -125,36 +125,45 @@ public class ProceedingJoinPoint {
     }
 
     protected Object preHandle(){
-        String proxyMethod = beforeMap.get(getSignature());
-        if(Objects.nonNull(proxyMethod) && !proxyMethod.isEmpty()){
-            Class<?>[] argTypes = new Class[]{this.getClass().getSuperclass().getSuperclass()};
-            Object[] args = new Object[]{this};
-            return handle(proxyMethod, argTypes, args);
-        }else{
-            return proceed();
-        }
-    }
-
-    private void afterReturningHandle(Signature signature){
-        String methodName = afterReturningMap.get(signature);
-        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-            handle(methodName);
-        }
-    }
-
-    private Object afterThrowingHandle(Signature signature,Exception e){
-        String methodName = afterThrowingMap.get(signature);
-        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-            return handle(methodName,new Class[]{Exception.class},new Object[]{e});
+        if(Objects.nonNull(beforeMap)){
+            String proxyMethod = beforeMap.get(getSignature());
+            if(Objects.nonNull(proxyMethod) && !proxyMethod.isEmpty()){
+                Class<?>[] argTypes = new Class[]{this.getClass().getSuperclass().getSuperclass()};
+                Object[] args = new Object[]{this};
+                return handle(proxyMethod, argTypes, args);
+            }else{
+                return proceed();
+            }
         }
         return null;
     }
 
-    private void afterHandle(Signature signature){
-        String methodName = afterMap.get(signature);
-        if(Objects.nonNull(methodName) && !methodName.isEmpty()){
-            handle(methodName);
+    private void postHandle(Signature signature){
+        if(Objects.nonNull(afterMap)){
+            String methodName = afterMap.get(signature);
+            if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+                handle(methodName);
+            }
         }
+    }
+
+    private void afterCompletion(Signature signature){
+        if(Objects.nonNull(afterReturningMap)){
+            String methodName = afterReturningMap.get(signature);
+            if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+                handle(methodName);
+            }
+        }
+    }
+
+    private Object afterThrowing(Signature signature,Exception e){
+        if(Objects.nonNull(afterThrowingMap)){
+            String methodName = afterThrowingMap.get(signature);
+            if(Objects.nonNull(methodName) && !methodName.isEmpty()){
+                return handle(methodName,new Class[]{Exception.class},new Object[]{e});
+            }
+        }
+        return null;
     }
 
     private Signature getSignature() {
@@ -181,13 +190,14 @@ public class ProceedingJoinPoint {
                 //从ioc容器中查询实例
                 if(Objects.nonNull(args) && Objects.nonNull(argTypes) && args.length > 0 && argTypes.length > 0){
                     return clazz.getDeclaredMethod(method.substring(index + 1),argTypes)
-                            .invoke(DependencyInjectProcessor.getInstance().getClassInstance(clazz), args);
+                            .invoke(IocContainer.getInstance().getClassInstance(clazz), args);
                 }else{
                     return clazz.getDeclaredMethod(method.substring(index + 1)).invoke(
-                            DependencyInjectProcessor.getInstance().getClassInstance(clazz));
+                            IocContainer.getInstance().getClassInstance(clazz));
                 }
             } catch (Exception e) {
-                throw new ExceptionWrapper(e);
+                e.printStackTrace();
+               // throw new ExceptionWrapper(e);
             }
         }
         return null;

@@ -8,8 +8,8 @@ import com.mvc.util.proxy.ProceedingJoinPoint;
 /**
  * @author xhzy
  */
-//@Configuration
-//@Aspect
+@Configuration
+@Aspect
 public class AdviceService {
 
 //    @Around("@annotation(com.mvc.annotation.test.AccessGranted)")
@@ -31,14 +31,14 @@ public class AdviceService {
 //        System.out.println("this is a test for after advice, hello world =====");
 //    }
 
-//    @Around("execution(public com.mvc.controller.*Controller.*(..))")
-//    public Object testAround(ProceedingJoinPoint point){
-//        System.out.println("[log before] =====");
-//        Object result = point.proceed();
-//        System.out.println("result ===="+ result);
-//        System.out.println("[log after] =====");
-//        return result;
-//    }
+    @Around("execution(public com.mvc.controller.*Controller.*(..))")
+    public Object testAround(ProceedingJoinPoint point){
+        System.out.println("[log before] =====");
+        Object result = point.proceed();
+        System.out.println("result ===="+ result);
+        System.out.println("[log after] =====");
+        return result;
+    }
 
 //    @AfterReturning(execution = "public com.mvc.service.impl.UserServiceImpl.getDataSourceConfig(..)")
 //    public void testAfter(){

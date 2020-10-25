@@ -1,9 +1,7 @@
 package com.mvc.util.aspect;
 
 import com.mvc.entity.method.Signature;
-import com.mvc.util.exception.ExceptionWrapper;
-import com.mvc.util.injection.DependencyInjectProcessor;
-import com.mvc.util.mapping.HandlerMapping;
+import com.mvc.util.injection.IocContainer;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -20,41 +18,10 @@ public class AspectHandler {
 
     private AspectHandler(){}
 
-    public static AspectHandler getInstance(){
-        return HANDLER;
-    }
-
-    public void reInject(){
-        if(AspectProcessor.getInstance().reInjected()){
-            Set<Class<?>> classes = new HashSet<>();
-            Map<String, Class<?>[]> reInjected = AspectProcessor.getInstance().getReInjected();
-            reInjected.forEach((k,v) -> {
-                try {
-                    classes.add(Class.forName(k));
-                    if(v.length > 0){
-                        classes.addAll(Arrays.asList(v));
-                    }
-                } catch (ClassNotFoundException e) {
-                    throw new ExceptionWrapper(e);
-                }
-            });
-            if(!classes.isEmpty()){
-                //将代理对象重新注入到依赖它的类中
-                getClasses().forEach(e -> reInject(e,classes));
-            }
-        }
-    }
-
-    private void reInject(Class<?> clazz, Set<Class<?>> classes){
-        try {
-            DependencyInjectProcessor.getInstance().reInject(clazz,classes);
-        } catch (Exception e) {
-            throw new ExceptionWrapper(e);
-        }
-    }
+    public static AspectHandler getInstance(){ return HANDLER; }
 
     private List<Class<?>> getClasses(){
-        return HandlerMapping.getInstance().getClasses();
+        return IocContainer.getInstance().getClasses();
     }
 
     public void createProxy() {
@@ -73,9 +40,8 @@ public class AspectHandler {
         }
     }
 
-    private void getAnnotatedMethod(Class<?> clazz, Set<Class<?>> annotations,
-                                           Map<Class<?>, Signature> annotationMethodMap,
-                                           List<Signature> classes) {
+    private void getAnnotatedMethod(Class<?> clazz, Set<Class<?>> annotations, Map<Class<?>, Signature> annotationMethodMap,
+                                    List<Signature> classes) {
         Method[] declaredMethods = clazz.getDeclaredMethods();
         Signature signature;
         Annotation[] declaredAnnotations;

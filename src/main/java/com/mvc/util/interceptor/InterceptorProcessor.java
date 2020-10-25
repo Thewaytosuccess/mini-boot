@@ -2,7 +2,7 @@ package com.mvc.util.interceptor;
 
 import com.mvc.annotation.aop.aspect.Interceptor;
 import com.mvc.util.exception.ExceptionWrapper;
-import com.mvc.util.injection.DependencyInjectProcessor;
+import com.mvc.util.injection.IocContainer;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -27,6 +27,9 @@ public class InterceptorProcessor implements HandlerInterceptor{
     private boolean sorted = false;
 
     public boolean interceptorExisted(){
+        if(Objects.isNull(interceptors)){
+            return false;
+        }
         return !interceptors.isEmpty();
     }
 
@@ -54,7 +57,7 @@ public class InterceptorProcessor implements HandlerInterceptor{
         for(Class<?> c: interceptors){
             try {
                 if(!(boolean)c.getDeclaredMethod("preHandle", HttpServletRequest.class, HttpServletResponse.class)
-                        .invoke(DependencyInjectProcessor.getInstance().getClassInstance(c), request, response)){
+                        .invoke(IocContainer.getInstance().getClassInstance(c), request, response)){
                     return false;
                 }
             } catch (Exception e) {
@@ -71,7 +74,7 @@ public class InterceptorProcessor implements HandlerInterceptor{
             clazz = interceptors.get(i);
             try {
                 clazz.getDeclaredMethod("postHandle", HttpServletRequest.class, HttpServletResponse.class,Object.class)
-                        .invoke(DependencyInjectProcessor.getInstance().getClassInstance(clazz), request, response,result);
+                        .invoke(IocContainer.getInstance().getClassInstance(clazz), request, response,result);
             } catch (Exception e) {
                 throw new ExceptionWrapper(e);
             }
@@ -87,7 +90,7 @@ public class InterceptorProcessor implements HandlerInterceptor{
             try {
                 clazz.getDeclaredMethod("afterCompletion", HttpServletRequest.class,
                         HttpServletResponse.class, Object.class, Exception.class)
-                        .invoke(DependencyInjectProcessor.getInstance().getClassInstance(clazz), request, response,result,ex);
+                        .invoke(IocContainer.getInstance().getClassInstance(clazz), request, response,result,ex);
             } catch (Exception e) {
                 throw new ExceptionWrapper(e);
             }

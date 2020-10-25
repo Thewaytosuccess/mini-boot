@@ -10,12 +10,12 @@ import com.mvc.enums.ModifiersEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.exception.ControllerAdviceHandler;
 import com.mvc.util.exception.ExceptionWrapper;
+import com.mvc.util.injection.IocContainer;
 import com.mvc.util.proxy.ProceedingJoinPoint;
 import com.mvc.util.proxy.cglib.CglibAroundProxy;
 import com.mvc.util.proxy.cglib.CglibProxy;
 import com.mvc.util.proxy.jdk.JdkProxy;
 import com.mvc.util.proxy.jdk.JdkAroundProxy;
-import com.mvc.util.injection.DependencyInjectProcessor;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -145,7 +145,7 @@ public class AspectProcessor {
 
     private void createProxy(Class<?> targetClass,List<Signature> list){
         try {
-            Object target = DependencyInjectProcessor.getInstance().getClassInstance(targetClass);
+            Object target = IocContainer.getInstance().getClassInstance(targetClass);
             if(Objects.nonNull(target)){
                 //判断是否已经创建过代理
                 if(targetClass != target.getClass()){
@@ -184,7 +184,7 @@ public class AspectProcessor {
                 }
 
                 //将代理对象注入到ioc容器
-                DependencyInjectProcessor.getInstance().replace(targetClass,proxy);
+                IocContainer.getInstance().addInstance(targetClass,proxy);
             }else{
                 throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
@@ -414,6 +414,5 @@ public class AspectProcessor {
             info.setModifiers(0);
         }
     }
-
 
 }

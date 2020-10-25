@@ -5,7 +5,7 @@ import com.mvc.annotation.exception.ControllerAdvice;
 import com.mvc.annotation.type.controller.RestController;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.AdviceEnum;
-import com.mvc.util.mapping.HandlerMapping;
+import com.mvc.util.injection.IocContainer;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -27,15 +27,19 @@ public class ControllerAdviceHandler {
 
     public Set<Signature> handle(){
         Set<Signature> methods = new HashSet<>();
-        List<Class<?>> classes = HandlerMapping.getInstance().getClasses();
-        if(classes.isEmpty()){
+        List<Class<?>> classes = IocContainer.getInstance().getClasses();
+        if(Objects.isNull(classes) || classes.isEmpty()){
             return methods;
         }
 
         String adviceMethod = null;
         Class<?> controllerAdvice = classes.get(classes.size() - 1);
         if(!controllerAdvice.isAnnotationPresent(ControllerAdvice.class)){
-            return methods;
+            if(Arrays.asList(controllerAdvice.getInterfaces()).contains(ExceptionHandler.class)){
+                adviceMethod = controllerAdvice.getName() + PATH_SEPARATOR + "handle";
+            }else{
+                return methods;
+            }
         }else{
             Class<? extends ExceptionHandler> handler = controllerAdvice.getAnnotation(ControllerAdvice.class)
                     .exceptionHandler();

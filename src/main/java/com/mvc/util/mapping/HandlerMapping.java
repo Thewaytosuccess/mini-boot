@@ -17,12 +17,9 @@ import com.mvc.entity.method.Param;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.HttpMethodEnum;
 import com.mvc.util.aspect.AspectHandler;
-import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
-import com.mvc.util.injection.DependencyInjectProcessor;
-import com.mvc.util.interceptor.HandlerInterceptor;
-import com.mvc.util.interceptor.InterceptorProcessor;
+import com.mvc.util.injection.IocContainer;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -60,8 +57,6 @@ public class HandlerMapping {
 
     private Set<String> paths;
 
-    private List<Class<?>> classes;
-
     /**
      * 包扫描，将所有被注解的类和方法统一注册到注册中心
      * @param basePackage 基包
@@ -75,37 +70,23 @@ public class HandlerMapping {
         }
         //2.解析包含注解的类并按照优先级排序
         sortAndFilter();
+
         //3.注册所有带注解的类到ioc容器
-        classes.forEach(this::inject);
-        //4.切面扫描
-        classes.forEach(this::aspectScan);
+        IocContainer container = IocContainer.getInstance();
+        container.inject();
+        //4.mvc建立url和方法的映射
+        buildMapping(container.getControllers());
 
-        //5.判断是否需要创建代理
-        AspectHandler aspectHandler = AspectHandler.getInstance();
-        aspectHandler.createProxy();
-        //6.判断是否需要重新注入代理
-        aspectHandler.reInject();
+        //5.切面扫描
+        container.aspectScan();
+        //6.为切面指向的类创建代理
+        AspectHandler.getInstance().createProxy();
+        //7.将代理重新注入ioc容器
+        container.reInject();
 
-        //7.bean初始化
-        DependencyInjectProcessor injectProcessor = DependencyInjectProcessor.getInstance();
-        classes.forEach(injectProcessor::initialize);
+        //8.bean初始化
+        container.init();
         print();
-    }
-
-    public List<Class<?>> getClasses(){
-        return classes;
-    }
-
-    private void aspectScan(Class<?> clazz) {
-        if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class)){
-            //aop
-            AspectProcessor.getInstance().process(clazz);
-        }else if(clazz.isAnnotationPresent(Interceptor.class)){
-            if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
-                System.out.println("interceptor === "+clazz.getName());
-                InterceptorProcessor.getInstance().add(clazz);
-            }
-        }
     }
 
     /**
@@ -184,9 +165,7 @@ public class HandlerMapping {
             }
         });
 
-        if(Objects.isNull(classes)){
-            classes = new ArrayList<>();
-        }
+        List<Class<?>> classes = IocContainer.getInstance().getClasses();
         classes.addAll(configurationClasses);
         classes.addAll(componentClasses);
         classes.addAll(serviceClasses);
@@ -203,32 +182,33 @@ public class HandlerMapping {
     public MethodInfo getMethodInfo(String uri,String method){
         MethodInfo methodInfo = null;
         //精确匹配
+        DataBindingProcessor processor = DataBindingProcessor.getInstance();
         if(HttpMethodEnum.GET.getMethod().equalsIgnoreCase(method)){
             methodInfo = getMap.get(uri);
             //针对@PathVariable的模糊匹配
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.getInstance().patternMatch(getMap,uri);
+                methodInfo = processor.patternMatch(getMap,uri);
             }
         }else if(HttpMethodEnum.POST.getMethod().equalsIgnoreCase(method)){
             methodInfo = postMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.getInstance().patternMatch(postMap,uri);
+                methodInfo = processor.patternMatch(postMap,uri);
             }
         }else if(HttpMethodEnum.DELETE.getMethod().equalsIgnoreCase(method)){
             methodInfo = deleteMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.getInstance().patternMatch(deleteMap,uri);
+                methodInfo = processor.patternMatch(deleteMap,uri);
             }
         }else if(HttpMethodEnum.PUT.getMethod().equalsIgnoreCase(method)){
             methodInfo = putMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.getInstance().patternMatch(putMap,uri);
+                methodInfo = processor.patternMatch(putMap,uri);
             }
         }
         if(Objects.isNull(methodInfo)){
             methodInfo = requestMap.get(uri);
             if(Objects.isNull(methodInfo)){
-                methodInfo = DataBindingProcessor.getInstance().patternMatch(requestMap,uri);
+                methodInfo = processor.patternMatch(requestMap,uri);
             }
         }
         return methodInfo;
@@ -264,26 +244,14 @@ public class HandlerMapping {
      * 解析@RequestMapping,@GetMapping,@PostMapping所注解的方法，拼接成url,
      * 统一注册到map<url,package.class.method>
      */
-    private void inject(Class<?> clazz){
-        try {
-            //待处理@Controller
-            if(clazz.isAnnotationPresent(Configuration.class) ||
-               clazz.isAnnotationPresent(Component.class) ||
-               clazz.isAnnotationPresent(Service.class) ||
-               clazz.isAnnotationPresent(ControllerAdvice.class) ||
-               clazz.isAnnotationPresent(Interceptor.class)){
-                //ioc
-                DependencyInjectProcessor.getInstance().inject(clazz);
-            }else if(clazz.isAnnotationPresent(RestController.class)){
-                DependencyInjectProcessor.getInstance().inject(clazz);
-                //解析类上的@RequestMapping，拼装uri前缀
-                getUriPrefix(clazz);
-                //建立uri和对应的方法的映射
-                methodMapping(clazz);
-            }
-        } catch (Exception e) {
-            throw new ExceptionWrapper(e);
-        }
+    private void buildMapping(List<Class<?>> classes){
+        //待处理@Controller
+        classes.forEach(e -> {
+            //解析类上的@RequestMapping，拼装uri前缀
+            getUriPrefix(e);
+            //建立uri和对应的方法的映射
+            methodMapping(e);
+        });
     }
 
     private void getUriPrefix(Class<?> clazz){
@@ -341,7 +309,8 @@ public class HandlerMapping {
         Method[] methods = clazz.getDeclaredMethods();
         MethodInfo methodInfo;
         for(Method method:methods){
-            methodInfo = new MethodInfo(clazz.getName() + PATH_SEPARATOR + method.getName(),parseParameters(method));
+            methodInfo = new MethodInfo(clazz.getName() + PATH_SEPARATOR + method.getName(),
+                    parseParameters(method));
             if(method.isAnnotationPresent(GetMapping.class)){
                 if(Objects.isNull(getMap)){
                     getMap = new HashMap<>(16);

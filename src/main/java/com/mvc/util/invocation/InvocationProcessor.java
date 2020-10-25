@@ -5,7 +5,7 @@ import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
 import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
-import com.mvc.util.injection.DependencyInjectProcessor;
+import com.mvc.util.injection.IocContainer;
 import com.mvc.util.mapping.HandlerMapping;
 
 import javax.servlet.http.HttpServletRequest;
@@ -69,9 +69,9 @@ public class InvocationProcessor {
                 Class<?> clazz = Class.forName(methodName.substring(0, index));
                 //从ioc容器中查询实例
                 return clazz.getDeclaredMethod(methodName.substring(index + 1), params.stream().map(Param::getType).toArray(Class[]::new))
-                        .invoke(DependencyInjectProcessor.getInstance().getClassInstance(clazz),
-                                params.stream().map(Param::getValue).toArray(Object[]::new));
+                        .invoke(IocContainer.getInstance().getClassInstance(clazz), params.stream().map(Param::getValue).toArray(Object[]::new));
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new ExceptionWrapper(e);
             }
         }

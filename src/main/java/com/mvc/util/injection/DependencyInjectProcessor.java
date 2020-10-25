@@ -1,11 +1,16 @@
 package com.mvc.util.injection;
 
-import com.mvc.annotation.bean.*;
+import com.mvc.annotation.bean.ioc.Autowired;
+import com.mvc.annotation.bean.ioc.Bean;
+import com.mvc.annotation.bean.ioc.Qualifier;
+import com.mvc.annotation.bean.ioc.Resource;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.enums.ExceptionEnum;
-import com.mvc.enums.constant.ConstantPool;
+import com.mvc.util.exception.ExceptionHandler;
 import com.mvc.util.exception.ExceptionWrapper;
+import com.mvc.util.interceptor.HandlerInterceptor;
+import com.mvc.util.interceptor.InterceptorProcessor;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -25,11 +30,6 @@ public class DependencyInjectProcessor {
     }
 
     /**
-     * IOC容器
-     */
-    private Map<Class<?>,Object> iocContainer;
-
-    /**
      * 接口和对应的子类映射
      */
     private Map<Class<?>, List<Class<?>>> interfaceInstanceMap;
@@ -38,8 +38,6 @@ public class DependencyInjectProcessor {
      * 类名和类的映射
      */
     private Map<String,Class<?>> nameClassMap;
-
-    private Set<String> preDestroySet;
 
     public void inject(Class<?> clazz) throws Exception{
         Object instance = clazz.newInstance();
@@ -60,66 +58,45 @@ public class DependencyInjectProcessor {
             }
         }
         if(!fields.isEmpty()){
-            fieldsInject(getClassInstance(clazz),fields,false);
+            fieldsInject(IocContainer.getInstance().getClassInstance(clazz),fields,false);
         }
-    }
-
-    public void initialize(Class<?> clazz){
-        try {
-            Method[] declaredMethods = clazz.getDeclaredMethods();
-            for(Method m:declaredMethods){
-                if(m.isAnnotationPresent(PostConstruct.class)){
-                    m.invoke(getClassInstance(clazz));
-                }else if(m.isAnnotationPresent(PreDestroy.class)){
-                    if(Objects.isNull(preDestroySet)){
-                        preDestroySet = new HashSet<>();
-                    }
-                    preDestroySet.add(clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName());
-                }
-            }
-        } catch (Exception ex) {
-            throw new ExceptionWrapper(ex);
-        }
-    }
-
-    public void destroy(){
-        preDestroySet.forEach(k -> {
-            int index = k.lastIndexOf(ConstantPool.PATH_SEPARATOR);
-            try {
-                Class<?> clazz = Class.forName(k.substring(0, index));
-                clazz.getDeclaredMethod(k.substring(index + 1)).invoke(getClassInstance(clazz));
-            } catch (Exception e) {
-                throw new ExceptionWrapper(e);
-            }
-        });
-    }
-
-    public Object getClassInstance(Class<?> clazz){
-        return iocContainer.get(clazz);
-    }
-
-    public void replace(Class<?> clazz, Object proxy) {
-        iocContainer.put(clazz,proxy);
     }
 
     private void beanInject(Object instance) throws Exception {
-        if(Objects.isNull(iocContainer)){
-            iocContainer = new HashMap<>(16);
-        }
         Method[] declaredMethods = instance.getClass().getDeclaredMethods();
+        Class<?> returnType;
+        Class<?>[] parameterTypes;
+        int parameterCount;
+
+        IocContainer container = IocContainer.getInstance();
         for(Method m:declaredMethods){
             if(m.isAnnotationPresent(Bean.class)){
-                Class<?>[] parameterTypes = m.getParameterTypes();
-                int parameterCount = m.getParameterCount();
+                returnType= m.getReturnType();
+                if(returnType == Void.class){
+                    throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
+                }
+
+                //register interceptor
+                if(Arrays.asList(returnType.getInterfaces()).contains(HandlerInterceptor.class) ||
+                   returnType.getSuperclass() == HandlerInterceptor.class){
+                    InterceptorProcessor.getInstance().add(returnType);
+                }
+
+                //register controllerAdvice
+                if(Arrays.asList(returnType.getInterfaces()).contains(ExceptionHandler.class)){
+                    IocContainer.getInstance().addClass(returnType);
+                }
+                parameterTypes = m.getParameterTypes();
+                parameterCount = m.getParameterCount();
                 if(parameterCount > 0){
                     Object[] parameters = new Object[parameterCount];
                     int i=0;
                     for(Class<?> c:parameterTypes){
-                        parameters[i++] = iocContainer.get(c);
+                        parameters[i++] = container.getClassInstance(c);
                     }
-                    iocContainer.put(m.getReturnType(),m.invoke(instance,parameters));
+                    container.addInstance(returnType,m.invoke(instance,parameters));
                 }else{
-                    iocContainer.put(m.getReturnType(),m.invoke(instance));
+                    container.addInstance(returnType,m.invoke(instance));
                 }
             }
         }
@@ -132,23 +109,24 @@ public class DependencyInjectProcessor {
      */
     private void fieldsInject(Object instance,List<Field> fields,boolean injectSelf){
         //先将依赖的对象注入进来
+        IocContainer container = IocContainer.getInstance();
         for(Field f:fields){
             if(f.isAnnotationPresent(Autowired.class) || f.isAnnotationPresent(Resource.class)){
                 try {
                     //修改private/final修饰的字段时，一定要加上setAccessible(true)
                     f.setAccessible(true);
-                    if(Objects.nonNull(iocContainer.get(f.getType()))){
+                    if(Objects.nonNull(container.getClassInstance(f.getType()))){
                         //反射不会自动装拆箱,尽量统一用set
-                        f.set(instance, iocContainer.get(f.getType()));
+                        f.set(instance, container.getClassInstance(f.getType()));
                     }else{
                         //尝试通过接口查询对应的子类
                         List<Class<?>> children = interfaceInstanceMap.get(f.getType());
                         if(children.size() == 1){
                             //接口仅有一个实现类
-                            f.set(instance, iocContainer.get(children.get(0)));
+                            f.set(instance, container.getClassInstance(children.get(0)));
                         }else{
                             //接口有多个实现类,通过名称匹配
-                            f.set(instance, iocContainer.get(getClassByName(f)));
+                            f.set(instance, container.getClassInstance(getClassByName(f)));
                         }
                     }
                 } catch (Exception ex) {
@@ -164,11 +142,8 @@ public class DependencyInjectProcessor {
 
     private void injectSelf(Object instance){
         Class<?> clazz = instance.getClass();
-        if(Objects.isNull(iocContainer)){
-            iocContainer = new HashMap<>(16);
-        }
         //将类和对应的实例注入到ioc容器
-        iocContainer.put(clazz, instance);
+        IocContainer.getInstance().addInstance(clazz, instance);
         Class<?>[] interfaces = clazz.getInterfaces();
         for(Class<?> interfaceClass:interfaces){
             if(Objects.isNull(interfaceInstanceMap)){
