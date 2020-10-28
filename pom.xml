@@ -87,9 +87,11 @@
                 <version>${war.plugin.version}</version>
                 <configuration>
                     <resourceEncoding>${default.encoding}</resourceEncoding>
+                    <!--
                     <warSourceDirectory>webapp</warSourceDirectory>
-                    <webXml>webapp/WEB-INF/web.xml</webXml>
-                    <failOnMissingWebXml>true</failOnMissingWebXml>
+                    <webXml>webapp/WEB-INF/web</webXml>
+                    -->
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
                 </configuration>
             </plugin>
 

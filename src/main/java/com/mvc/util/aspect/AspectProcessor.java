@@ -241,7 +241,7 @@ public class AspectProcessor {
                     e.setAdviceMethod(adviceMethod);
                     e.setAdviceEnum(adviceEnum);
                     buildClassMethodMap(e);
-                    System.out.println("execution method = "+e);
+                    //System.out.println("execution method = "+e);
                 });
             }else if(execution.startsWith(ConstantPool.ANNOTATION_PREFIX) && execution.endsWith(ConstantPool.RIGHT_BRACKET)){
                 parseAnnotationExpression(execution,adviceMethod,adviceEnum);

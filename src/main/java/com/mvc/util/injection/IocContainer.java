@@ -60,7 +60,7 @@ public class IocContainer {
 
     public List<Class<?>> getClasses(){
         if(Objects.isNull(classes)){
-            return Collections.emptyList();
+            classes = new ArrayList<>();
         }
         return classes;
     }
