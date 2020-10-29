@@ -60,23 +60,20 @@ public class AspectHandler {
     }
 
     public void methodScan(Class<?> clazz, Set<Signature> set) {
-        Method[] methods = clazz.getDeclaredMethods();
-        for(Method m:methods){
-            set.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                    clazz.getName() + PATH_SEPARATOR + m.getName()));
-        }
+        Arrays.stream(clazz.getDeclaredMethods()).forEach(e -> set.add(new Signature(e.getParameterCount(),
+                e.getParameterTypes(), clazz.getName() + PATH_SEPARATOR + e.getName())));
     }
 
-    public void classScan(String packageName, Set<Signature> list) {
-        getClasses().stream().filter(e -> e.getName().startsWith(packageName)).forEach(e -> methodScan(e, list));
+    public void classScan(String packageName, Set<Signature> set) {
+        getClasses().stream().filter(e -> e.getName().startsWith(packageName)).forEach(e -> methodScan(e, set));
     }
 
-    public void patternClassScan(String className, Set<Signature> list) {
+    public void patternClassScan(String className, Set<Signature> set) {
         getClasses().stream().filter(e -> e.getName().matches(AspectProcessor.getInstance().toRegExp(className))).
-                forEach(e -> methodScan(e, list));
+                forEach(e -> methodScan(e,set));
     }
 
-    public void patternMethodScan(String methodName, Set<Signature> list, boolean patternMatch) {
+    public void patternMethodScan(String methodName, Set<Signature> set, boolean patternMatch) {
         int index = methodName.lastIndexOf(".");
         String className = methodName.substring(0,index);
         getClasses().stream().filter(e -> e.getName().equals(className)).forEach(e -> {
@@ -84,12 +81,12 @@ public class AspectHandler {
             for(Method m:methods){
                 if(patternMatch){
                     if(m.getName().matches(AspectProcessor.getInstance().toRegExp(methodName.substring(index + 1)))){
-                        list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                        set.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
                                 className + PATH_SEPARATOR + m.getName()));
                     }
                 }else{
                     if(m.getName().equals(methodName.substring(index + 1))){
-                        list.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
+                        set.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
                                 className + PATH_SEPARATOR + m.getName()));
                     }
                 }

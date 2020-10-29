@@ -1,9 +1,10 @@
 package com.mvc.servlet;
 
+import com.mvc.util.task.async.TaskExecutor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.ConfigurationProcessor;
-import com.mvc.util.injection.IocContainer;
 import com.mvc.util.interceptor.InterceptorProcessor;
+import com.mvc.util.task.life.LifeCycleManager;
 import com.mvc.util.mapping.HandlerMapping;
 import com.mvc.util.invocation.InvocationProcessor;
 
@@ -84,7 +85,8 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     public void destroy() {
-        IocContainer.getInstance().destroy();
+        LifeCycleManager.getInstance().destroy();
+        TaskExecutor.getInstance().shutdown();
         super.destroy();
     }
 }

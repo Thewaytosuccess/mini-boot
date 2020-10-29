@@ -4,6 +4,8 @@ import com.mvc.entity.method.Signature;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.aspect.AspectProcessor;
+import com.mvc.util.task.async.AsyncTaskManager;
+import com.mvc.util.task.async.TaskExecutor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.IocContainer;
 
@@ -53,8 +55,15 @@ public class ProceedingJoinPoint {
     public Object proceed(){
         Signature signature = getSignature();
         try{
-            Object result = jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(
-                    method.getName(), method.getParameterTypes()).invoke(target,args);
+            Object result;
+            if(AsyncTaskManager.getInstance().isAsync(signature)){
+                result = TaskExecutor.getInstance().getExecutor().submit(() -> jdkProxy ?
+                        method.invoke(target, args) : target.getClass().getDeclaredMethod(
+                        method.getName(), method.getParameterTypes()).invoke(target,args)).get();
+            }else{
+                result = jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(
+                        method.getName(), method.getParameterTypes()).invoke(target,args);
+            }
             postHandle(signature);
             return result;
         } catch (Exception e){
@@ -118,7 +127,7 @@ public class ProceedingJoinPoint {
         return proceed();
     }
 
-    protected ProceedingJoinPoint(Object target, List<Signature> list,boolean jdkProxy){
+    protected ProceedingJoinPoint(Object target, List<Signature> list, boolean jdkProxy){
         this.target = target;
         this.jdkProxy = jdkProxy;
         setMethod(list);

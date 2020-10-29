@@ -1,21 +1,17 @@
 package com.mvc.util.injection;
 
 import com.mvc.annotation.aop.aspect.Interceptor;
-import com.mvc.annotation.bean.life.PostConstruct;
-import com.mvc.annotation.bean.life.PreDestroy;
 import com.mvc.annotation.config.Configuration;
 import com.mvc.annotation.exception.ControllerAdvice;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.controller.Controller;
 import com.mvc.annotation.type.controller.RestController;
 import com.mvc.annotation.type.service.Service;
-import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.aspect.AspectProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.interceptor.HandlerInterceptor;
 import com.mvc.util.interceptor.InterceptorProcessor;
 
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,8 +37,6 @@ public class IocContainer {
      * IOC容器：装载类和对应的实例
      */
     private Map<Class<?>,Object> iocContainer;
-
-    private Set<String> preDestroySet;
 
     public void addClass(Class<?> clazz){
         if(Objects.isNull(clazz)){
@@ -142,45 +136,6 @@ public class IocContainer {
                     //register interceptor
                     InterceptorProcessor.getInstance().add(clazz);
                 }
-            }
-        });
-    }
-
-    public void init(){
-        if(Objects.isNull(classes)){
-            return;
-        }
-        classes.forEach(clazz -> {
-            try {
-                Method[] declaredMethods = clazz.getDeclaredMethods();
-                for(Method m:declaredMethods){
-                    if(m.isAnnotationPresent(PostConstruct.class)){
-                        m.invoke(IocContainer.getInstance().getClassInstance(clazz));
-                    }else if(m.isAnnotationPresent(PreDestroy.class)){
-                        if(Objects.isNull(preDestroySet)){
-                            preDestroySet = new HashSet<>();
-                        }
-                        preDestroySet.add(clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName());
-                    }
-                }
-            } catch (Exception ex) {
-                throw new ExceptionWrapper(ex);
-            }
-        });
-    }
-
-    public void destroy(){
-        if(Objects.isNull(preDestroySet)){
-            return;
-        }
-        preDestroySet.forEach(k -> {
-            int index = k.lastIndexOf(ConstantPool.PATH_SEPARATOR);
-            try {
-                Class<?> clazz = Class.forName(k.substring(0, index));
-                clazz.getDeclaredMethod(k.substring(index + 1)).invoke(
-                        IocContainer.getInstance().getClassInstance(clazz));
-            } catch (Exception e) {
-                throw new ExceptionWrapper(e);
             }
         });
     }

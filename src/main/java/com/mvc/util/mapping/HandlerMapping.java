@@ -3,10 +3,11 @@ package com.mvc.util.mapping;
 import com.mvc.annotation.aop.aspect.Interceptor;
 import com.mvc.annotation.config.Configuration;
 import com.mvc.annotation.exception.ControllerAdvice;
-import com.mvc.annotation.method.*;
+import com.mvc.annotation.method.http.*;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.param.RequestParam;
+import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.component.ComponentScan;
 import com.mvc.annotation.type.controller.Controller;
@@ -20,6 +21,7 @@ import com.mvc.util.aspect.AspectHandler;
 import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.IocContainer;
+import com.mvc.util.task.life.LifeCycleManager;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -85,7 +87,9 @@ public class HandlerMapping {
         container.reInject();
 
         //8.bean初始化
-        container.init();
+        LifeCycleManager.getInstance().init();
+        //9.定时任务扫描
+
         print();
     }
 
@@ -98,7 +102,8 @@ public class HandlerMapping {
         for(String e: paths){
             try {
                 clazz = Class.forName(e);
-                if(clazz.isAnnotationPresent(ComponentScan.class)){
+                if(clazz.isAnnotationPresent(SpringBootApplication.class) && clazz.isAnnotationPresent(ComponentScan.class)){
+                    //简化处理
                     basePackage = clazz.getAnnotation(ComponentScan.class).basePackages()[0];
                     break;
                 }

@@ -1,19 +1,20 @@
-package com.mvc.util.async;
+package com.mvc.util.task.async;
 
-import com.mvc.annotation.bean.life.PostConstruct;
-import com.mvc.annotation.bean.life.PreDestroy;
-import com.mvc.annotation.type.component.Component;
-
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * @author xhzy
  */
-@Component
 public class TaskExecutor {
+
+    private static final TaskExecutor TASK_EXECUTOR = new TaskExecutor();
+
+    private TaskExecutor(){}
+
+    public static TaskExecutor getInstance(){ return TASK_EXECUTOR; }
 
     public ThreadPoolExecutor executor;
 
@@ -25,8 +26,11 @@ public class TaskExecutor {
                 new ArrayBlockingQueue<>(4), new ThreadFactoryImpl(THREAD_NAME_PREFIX));
     }
 
-    public void submit(Runnable runnable){
-        executor.submit(() -> runnable);
+    public ThreadPoolExecutor getExecutor(){
+        if(Objects.isNull(executor)){
+            initPool();
+        }
+        return executor;
     }
 
     @PreDestroy

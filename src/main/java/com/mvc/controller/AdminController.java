@@ -2,10 +2,10 @@ package com.mvc.controller;
 
 import com.mvc.annotation.bean.ioc.Resource;
 import com.mvc.annotation.config.Value;
-import com.mvc.annotation.method.DeleteMapping;
-import com.mvc.annotation.method.GetMapping;
-import com.mvc.annotation.method.PostMapping;
-import com.mvc.annotation.method.RequestMapping;
+import com.mvc.annotation.method.http.DeleteMapping;
+import com.mvc.annotation.method.http.GetMapping;
+import com.mvc.annotation.method.http.PostMapping;
+import com.mvc.annotation.method.http.RequestMapping;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.type.controller.RestController;

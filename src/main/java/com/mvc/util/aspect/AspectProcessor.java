@@ -8,6 +8,7 @@ import com.mvc.enums.AdviceEnum;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.ModifiersEnum;
 import com.mvc.enums.constant.ConstantPool;
+import com.mvc.util.task.async.AsyncTaskManager;
 import com.mvc.util.exception.ControllerAdviceHandler;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.IocContainer;
@@ -87,13 +88,18 @@ public class AspectProcessor {
     }
 
     public void createProxy(List<Signature> methods) {
-        methods.forEach(this::buildClassMethodMap);
+        if(Objects.nonNull(methods)){
+            methods.forEach(this::buildClassMethodMap);
+        }
         createProxy();
     }
 
     public void createProxy(){
         //统一异常处理
         ControllerAdviceHandler.getInstance().handle().forEach(this::buildClassMethodMap);
+        //异步任务扫描
+        AsyncTaskManager.getInstance().scan().forEach(this::buildClassMethodMap);
+
         if(Objects.isNull(classMethodMap)){
             return;
         }

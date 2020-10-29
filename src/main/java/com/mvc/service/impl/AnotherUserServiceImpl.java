@@ -1,11 +1,12 @@
 package com.mvc.service.impl;
 
 import com.mvc.annotation.bean.ioc.Autowired;
-import com.mvc.annotation.bean.life.PostConstruct;
-import com.mvc.annotation.bean.life.PreDestroy;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.entity.test.DataSourceConfig;
 import com.mvc.service.UserService;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 /**
  * @author xhzy

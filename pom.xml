@@ -20,6 +20,7 @@
         <war.plugin.version>3.2.2</war.plugin.version>
         <javassist.verion>3.27.0-GA</javassist.verion>
         <cglib.version>3.1</cglib.version>
+        <quartz.version>2.3.0</quartz.version>
     </properties>
 
     <dependencies>
@@ -36,6 +37,13 @@
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
             <version>${cglib.version}</version>
+        </dependency>
+
+        <!-- scheduled task -->
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz</artifactId>
+            <version>${quartz.version}</version>
         </dependency>
 
         <!-- 动态生成字节码 -->

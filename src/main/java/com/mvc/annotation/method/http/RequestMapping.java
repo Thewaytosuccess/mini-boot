@@ -1,4 +1,4 @@
-package com.mvc.annotation.method;
+package com.mvc.annotation.method.http;
 
 import java.lang.annotation.*;
 
