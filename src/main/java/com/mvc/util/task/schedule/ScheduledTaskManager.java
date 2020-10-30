@@ -51,66 +51,85 @@ public class ScheduledTaskManager {
      */
     private void start(){
         StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
+        //用于计数
         AtomicInteger count = new AtomicInteger();
-
-        String startAt;
-        String endAt;
-        String pattern;
-        int priority;
-        int delay;
-        int index;
-
-        TriggerBuilder<Trigger> triggerBuilder;
-        CronTrigger trigger;
-        DefaultJob job;
-        Scheduler scheduler;
-        JobDetail jobDetail;
-        Scheduled scheduled;
-
         for (Method m:tasks){
-            index = count.incrementAndGet();
-            triggerBuilder = TriggerBuilder.newTrigger().withIdentity("TRIGGER_" + index, "TRIGGER_GROUP_" + index);
-            scheduled = m.getAnnotation(Scheduled.class);
-            startAt = scheduled.startAt();
-            pattern = scheduled.startAtPattern();
-            if(!startAt.isEmpty()){
-                triggerBuilder.startAt(DateUtil.parse(startAt,pattern));
-            }else{
-                triggerBuilder.startNow();
-            }
-
-            endAt = scheduled.endAt();
-            pattern = scheduled.endAtPattern();
-            if(!endAt.isEmpty()){
-                triggerBuilder.endAt(DateUtil.parse(endAt,pattern));
-            }
-
-            priority = scheduled.priority();
-            if(priority != 0){
-                triggerBuilder.withPriority(priority);
-            }
-
-            JobDataMap jobData = new JobDataMap();
-            triggerBuilder.usingJobData(jobData);
-
-            trigger = triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule(scheduled.cron())).build();
             try {
-                scheduler = schedulerFactory.getScheduler(scheduled.name() + index);
-                job = new DefaultJob(m);
-                jobDetail = JobBuilder.newJob(job.getClass()).withIdentity("JOB_" + index,
-                        "JOB_GROUP_" + index).setJobData(jobData).build();
-                delay = scheduled.delay();
-                if(delay != 0){
-                    scheduler.startDelayed(delay);
-                }
-                scheduler.scheduleJob(jobDetail,trigger);
-                scheduler.start();
+                buildScheduler(m,schedulerFactory,count).start();
                 //todo shutdown now
             } catch (SchedulerException e) {
                 e.printStackTrace();
                 throw new ExceptionWrapper(e);
             }
         }
+    }
+
+    private Scheduler buildScheduler(Method method,StdSchedulerFactory schedulerFactory,
+                                     AtomicInteger count) throws SchedulerException{
+        int index = count.incrementAndGet();
+        Scheduled scheduled = method.getAnnotation(Scheduled.class);
+        String scheduleName = scheduled.name();
+        if(scheduleName.isEmpty()){
+            scheduleName = "DEFAULT_SCHEDULE_" + index;
+        }
+
+        Scheduler scheduler = schedulerFactory.getScheduler(scheduleName);
+        int delay = scheduled.delay();
+        if(delay != 0){
+            scheduler.startDelayed(delay);
+        }
+        scheduler.scheduleJob(buildJob(scheduled,index,method),buildTrigger(scheduled,index));
+        return scheduler;
+    }
+
+    private Trigger buildTrigger(Scheduled scheduled,int index){
+        String triggerName = scheduled.triggerName();
+        if(triggerName.isEmpty()){
+            triggerName = "TRIGGER_" + index;
+        }
+        String triggerGroup = scheduled.triggerGroup();
+        if(triggerGroup.isEmpty()){
+            triggerGroup = "TRIGGER_GROUP_" + index;
+        }
+        TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger().withIdentity(triggerName,triggerGroup);
+
+        String startAt = scheduled.startAt();
+        String pattern = scheduled.startAtPattern();
+        if(!startAt.isEmpty()){
+            triggerBuilder.startAt(DateUtil.parse(startAt,pattern));
+        }else{
+            triggerBuilder.startNow();
+        }
+
+        String endAt = scheduled.endAt();
+        pattern = scheduled.endAtPattern();
+        if(!endAt.isEmpty()){
+            triggerBuilder.endAt(DateUtil.parse(endAt,pattern));
+        }
+
+        int priority = scheduled.priority();
+        if(priority != 0){
+            triggerBuilder.withPriority(priority);
+        }
+
+        JobDataMap jobData = new JobDataMap();
+        triggerBuilder.usingJobData(jobData);
+        return  triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule(scheduled.cron())).build();
+    }
+
+    private JobDetail buildJob(Scheduled scheduled,int index,Method method){
+        DefaultJob job = new DefaultJob(method);
+        String jobName = scheduled.jobName();
+        if(jobName.isEmpty()){
+            jobName = "JOB_" + index;
+        }
+
+        String jobGroup = scheduled.jobGroup();
+        if(jobGroup.isEmpty()){
+            jobGroup = "JOB_GROUP_" + index;
+        }
+        return JobBuilder.newJob(job.getClass()).withIdentity(jobName, jobGroup).
+                setJobData(new JobDataMap()).build();
     }
 
 }

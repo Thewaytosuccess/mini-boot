@@ -14,7 +14,7 @@ public @interface Scheduled {
 
     String cron();
 
-    String name() default "DEFAULT_SCHEDULE_";
+    String name() default "";
 
     int delay() default 0;
 
@@ -29,5 +29,13 @@ public @interface Scheduled {
     String startAtPattern() default "yyyy-MM-dd HH:mm:ss";
 
     String endAtPattern() default "yyyy-MM-dd HH:mm:ss";
+
+    String jobName() default "";
+
+    String jobGroup() default "";
+
+    String triggerName() default "";
+
+    String triggerGroup() default "";
 
 }
