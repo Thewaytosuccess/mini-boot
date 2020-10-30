@@ -239,4 +239,15 @@ public class ConfigurationProcessor {
     }
 
 
+    public Map<String,Object> getByPrefix(String prefix) {
+        if(Objects.isNull(configMap)){
+            configMap = new HashMap<>(16);
+        }
+        properties.forEach((k, v) -> {
+            if(String.valueOf(k).startsWith(prefix)){
+                configMap.put(String.valueOf(k),v);
+            }
+        });
+        return configMap;
+    }
 }

@@ -1,5 +1,7 @@
 package com.mvc.annotation.method.schedule;
 
+import com.mvc.util.task.schedule.ScheduleConfigAdapter;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -18,7 +20,7 @@ public @interface Scheduled {
 
     int delay() default 0;
 
-    int count() default -1;
+    int times() default -1;
 
     int priority() default 0;
 
@@ -37,5 +39,7 @@ public @interface Scheduled {
     String triggerName() default "";
 
     String triggerGroup() default "";
+
+    Class<? extends ScheduleConfigAdapter> config() default ScheduleConfigAdapter.class;
 
 }

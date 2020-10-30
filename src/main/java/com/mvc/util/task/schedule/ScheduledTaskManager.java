@@ -30,6 +30,8 @@ public class ScheduledTaskManager {
     public void scan(){
         if(Objects.isNull(tasks)){
             tasks = new HashSet<>();
+        }else{
+            return;
         }
 
         List<Class<?>> classes = IocContainer.getInstance().getClasses();
@@ -51,11 +53,11 @@ public class ScheduledTaskManager {
      */
     private void start(){
         StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
-        //用于计数
+        //用于编号
         AtomicInteger count = new AtomicInteger();
-        for (Method m:tasks){
+        for (Method method:tasks){
             try {
-                buildScheduler(m,schedulerFactory,count).start();
+                buildScheduler(method,schedulerFactory,count).start();
                 //todo shutdown now
             } catch (SchedulerException e) {
                 e.printStackTrace();
@@ -68,6 +70,10 @@ public class ScheduledTaskManager {
                                      AtomicInteger count) throws SchedulerException{
         int index = count.incrementAndGet();
         Scheduled scheduled = method.getAnnotation(Scheduled.class);
+        Class<? extends ScheduleConfigAdapter> config = scheduled.config();
+        if(config != ScheduleConfigAdapter.class){
+
+        }
         String scheduleName = scheduled.name();
         if(scheduleName.isEmpty()){
             scheduleName = "DEFAULT_SCHEDULE_" + index;
