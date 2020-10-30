@@ -29,20 +29,27 @@ public class DefaultScheduleConfig implements ScheduleConfigAdapter {
             throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
 
-        String prefix = config.getPrefix();
+        ScheduleConfig config = getConfig(this.config.getPrefix());
+        if(Objects.nonNull(config)){
+            this.config = config;
+        }
+
+        String cron = this.config.getCron();
+        if(Objects.isNull(cron) || cron.isEmpty()){
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
+        }
+        return this.config;
+    }
+
+    public static ScheduleConfig getConfig(String prefix){
         if(Objects.nonNull(prefix) && !prefix.isEmpty()){
             //优先查找配置
             Map<String, Object> map = ConfigurationProcessor.getInstance().getByPrefix(prefix);
             if(!map.isEmpty()){
-                config =  JSONObject.parseObject(JSONObject.toJSONString(map),ScheduleConfig.class);
+                return JSONObject.parseObject(JSONObject.toJSONString(map),ScheduleConfig.class);
             }
         }
-
-        String cron = config.getCron();
-        if(Objects.isNull(cron) || cron.isEmpty()){
-            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
-        }
-        return config;
+        return null;
     }
 
     @Override

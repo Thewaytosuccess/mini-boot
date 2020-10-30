@@ -3,8 +3,11 @@ package com.mvc.util.task.schedule.job;
 import com.mvc.annotation.enable.EnableScheduling;
 import com.mvc.annotation.method.schedule.Scheduled;
 import com.mvc.annotation.type.SpringBootApplication;
+import com.mvc.enums.ExceptionEnum;
+import com.mvc.enums.constant.ConstantPool;
 import com.mvc.util.DateUtil;
 import com.mvc.util.exception.ExceptionWrapper;
+import com.mvc.util.injection.ConfigurationProcessor;
 import com.mvc.util.injection.IocContainer;
 import com.mvc.util.task.schedule.config.DefaultScheduleConfig;
 import com.mvc.util.task.schedule.config.ScheduleConfig;
@@ -80,25 +83,43 @@ public class ScheduledJobManager {
                 config.setJobDataMap(jobData);
             }
         }else{
-            config = new ScheduleConfig();
-            config.setCron(scheduled.cron());
-            config.setName(scheduled.name());
-            config.setDelay(scheduled.delay());
-            config.setPriority(scheduled.priority());
-            config.setStartAt(scheduled.startAt());
-            config.setEndAt(scheduled.endAt());
-            config.setStartAtPattern(scheduled.startAtPattern());
-            config.setEndAtPattern(scheduled.endAtPattern());
-            config.setJobName(scheduled.jobName());
-            config.setJobGroup(scheduled.jobGroup());
-            config.setTriggerName(scheduled.triggerName());
-            config.setTriggerGroup(scheduled.triggerGroup());
+            config = DefaultScheduleConfig.getConfig(scheduled.prefix());
+            if(Objects.isNull(config)){
+                config = new ScheduleConfig();
+                config.setCron(getValue(scheduled.cron()));
+                config.setName(getValue(scheduled.name()));
+                config.setDelay(getValue(scheduled.delay()));
+                config.setPriority(getValue(scheduled.priority()));
+                config.setStartAt(getValue(scheduled.startAt()));
+                config.setEndAt(getValue(scheduled.endAt()));
+                config.setStartAtPattern(getValue(scheduled.startAtPattern()));
+                config.setEndAtPattern(getValue(scheduled.endAtPattern()));
+                config.setJobName(getValue(scheduled.jobName()));
+                config.setJobGroup(getValue(scheduled.jobGroup()));
+                config.setTriggerName(getValue(scheduled.triggerName()));
+                config.setTriggerGroup(getValue(scheduled.triggerGroup()));
+            }
+        }
+
+        String cron = config.getCron();
+        if(Objects.isNull(cron) || cron.isEmpty()){
+            throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
         return config;
     }
 
-    private Scheduler buildScheduler(Method method,StdSchedulerFactory schedulerFactory,
-                                     AtomicInteger count) throws Exception{
+    private String getValue(String key){
+        if(key.startsWith(ConstantPool.KEY_PREFIX) && key.endsWith(ConstantPool.KEY_SUFFIX)){
+            key = key.substring(2,key.length() - 1);
+            if(!key.isEmpty()){
+                return ConfigurationProcessor.getInstance().get(key);
+            }
+        }
+        return key;
+    }
+
+    private Scheduler buildScheduler(Method method,StdSchedulerFactory schedulerFactory, AtomicInteger count)
+            throws Exception{
         int index = count.incrementAndGet();
         ScheduleConfig config = getScheduleConfig(method);
         String scheduleName = config.getName();
@@ -107,9 +128,9 @@ public class ScheduledJobManager {
         }
 
         Scheduler scheduler = schedulerFactory.getScheduler(scheduleName);
-        int delay = config.getDelay();
-        if(delay != 0){
-            scheduler.startDelayed(delay);
+        String delay = config.getDelay();
+        if(Objects.nonNull(delay) && !delay.isEmpty()){
+            scheduler.startDelayed(Integer.parseInt(delay));
         }
         scheduler.scheduleJob(buildJob(config,index,method),buildTrigger(config,index));
         return scheduler;
@@ -140,9 +161,9 @@ public class ScheduledJobManager {
             triggerBuilder.endAt(DateUtil.parse(endAt,pattern));
         }
 
-        int priority = config.getPriority();
-        if(priority != 0){
-            triggerBuilder.withPriority(priority);
+        String priority = config.getPriority();
+        if(Objects.nonNull(priority) && !priority.isEmpty()){
+            triggerBuilder.withPriority(Integer.parseInt(priority));
         }
 
         JobDataMap jobData = config.getJobDataMap();

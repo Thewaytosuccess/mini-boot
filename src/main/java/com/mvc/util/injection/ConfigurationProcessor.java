@@ -259,7 +259,7 @@ public class ConfigurationProcessor {
                 if(key.contains(STRIKE_THROUGH)){
                     splits = key.split(STRIKE_THROUGH);
                     builder = new StringBuilder(splits[0]);
-                    for(int i=1,len=splits.length; i < len; ++i){
+                    for(int i = 1,len = splits.length; i < len; ++i){
                         builder.append(splits[i].substring(0, 1).toUpperCase()).append(splits[i].substring(1));
                     }
                     key = builder.toString();
@@ -268,5 +268,9 @@ public class ConfigurationProcessor {
             }
         }
         return configMap;
+    }
+
+    public String get(String key) {
+        return properties.getProperty(key);
     }
 }

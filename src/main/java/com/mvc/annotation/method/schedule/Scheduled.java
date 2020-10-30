@@ -19,9 +19,9 @@ public @interface Scheduled {
 
     String name() default "";
 
-    int delay() default 0;
+    String delay() default "";
 
-    int priority() default 0;
+    String priority() default "";
 
     String startAt() default "";
 
@@ -38,6 +38,8 @@ public @interface Scheduled {
     String triggerName() default "";
 
     String triggerGroup() default "";
+
+    String prefix() default "";
 
     Class<? extends ScheduleConfigAdapter> configClass() default DefaultScheduleConfig.class;
 

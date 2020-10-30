@@ -14,7 +14,7 @@ public interface ScheduleConfigAdapter {
     ScheduleConfig setConfig();
 
     /**
-     * 运行是传参
+     * 运行时传参
      * @return 参数
      */
     JobDataMap setData();

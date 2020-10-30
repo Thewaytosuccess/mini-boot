@@ -13,9 +13,9 @@ public class ScheduleConfig {
 
     private String name;
 
-    private int delay;
+    private String delay;
 
-    private int priority;
+    private String priority;
 
     private String startAt;
 
@@ -69,19 +69,19 @@ public class ScheduleConfig {
         this.name = name;
     }
 
-    public int getDelay() {
+    public String getDelay() {
         return delay;
     }
 
-    public void setDelay(int delay) {
+    public void setDelay(String delay) {
         this.delay = delay;
     }
 
-    public int getPriority() {
+    public String getPriority() {
         return priority;
     }
 
-    public void setPriority(int priority) {
+    public void setPriority(String priority) {
         this.priority = priority;
     }
 
