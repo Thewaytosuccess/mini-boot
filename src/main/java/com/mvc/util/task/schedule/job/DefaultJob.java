@@ -1,4 +1,4 @@
-package com.mvc.util.task.schedule;
+package com.mvc.util.task.schedule.job;
 
 import com.mvc.util.injection.IocContainer;
 import org.quartz.Job;
@@ -6,6 +6,9 @@ import org.quartz.JobExecutionContext;
 
 import java.lang.reflect.Method;
 
+/**
+ * @author xhzy
+ */
 public class DefaultJob implements Job {
 
     private final Method method;

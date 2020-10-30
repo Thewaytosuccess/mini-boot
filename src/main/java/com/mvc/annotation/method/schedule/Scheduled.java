@@ -1,6 +1,7 @@
 package com.mvc.annotation.method.schedule;
 
-import com.mvc.util.task.schedule.ScheduleConfigAdapter;
+import com.mvc.util.task.schedule.config.DefaultScheduleConfig;
+import com.mvc.util.task.schedule.config.ScheduleConfigAdapter;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -14,13 +15,11 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface Scheduled {
 
-    String cron();
+    String cron() default "";
 
     String name() default "";
 
     int delay() default 0;
-
-    int times() default -1;
 
     int priority() default 0;
 
@@ -40,6 +39,6 @@ public @interface Scheduled {
 
     String triggerGroup() default "";
 
-    Class<? extends ScheduleConfigAdapter> config() default ScheduleConfigAdapter.class;
+    Class<? extends ScheduleConfigAdapter> configClass() default DefaultScheduleConfig.class;
 
 }

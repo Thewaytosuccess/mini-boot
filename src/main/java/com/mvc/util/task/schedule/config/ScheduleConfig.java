@@ -1,10 +1,14 @@
-package com.mvc.util.task.schedule;
+package com.mvc.util.task.schedule.config;
+
+import com.sun.istack.internal.NotNull;
+import org.quartz.JobDataMap;
 
 /**
  * @author xhzy
  */
 public class ScheduleConfig {
 
+    @NotNull
     private String cron;
 
     private String name;
@@ -30,6 +34,16 @@ public class ScheduleConfig {
     private String triggerGroup;
 
     private String prefix;
+
+    private JobDataMap jobDataMap;
+
+    public void setJobDataMap(JobDataMap jobDataMap) {
+        this.jobDataMap = jobDataMap;
+    }
+
+    public JobDataMap getJobDataMap() {
+        return jobDataMap;
+    }
 
     public String getPrefix() {
         return prefix;

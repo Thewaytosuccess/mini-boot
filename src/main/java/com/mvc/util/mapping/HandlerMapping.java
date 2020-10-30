@@ -22,7 +22,7 @@ import com.mvc.util.binding.DataBindingProcessor;
 import com.mvc.util.exception.ExceptionWrapper;
 import com.mvc.util.injection.IocContainer;
 import com.mvc.util.task.life.LifeCycleManager;
-import com.mvc.util.task.schedule.ScheduledTaskManager;
+import com.mvc.util.task.schedule.job.ScheduledJobManager;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -90,7 +90,7 @@ public class HandlerMapping {
         //8.bean初始化
         LifeCycleManager.getInstance().init();
         //9.定时任务扫描
-        ScheduledTaskManager.getInstance().scan();
+        ScheduledJobManager.getInstance().scan();
         print();
     }
 

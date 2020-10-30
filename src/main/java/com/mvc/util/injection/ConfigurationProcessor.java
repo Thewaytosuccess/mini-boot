@@ -238,16 +238,35 @@ public class ConfigurationProcessor {
         }
     }
 
-
     public Map<String,Object> getByPrefix(String prefix) {
+        if(Objects.isNull(prefix) || prefix.isEmpty()){
+            return null;
+        }
         if(Objects.isNull(configMap)){
             configMap = new HashMap<>(16);
         }
-        properties.forEach((k, v) -> {
-            if(String.valueOf(k).startsWith(prefix)){
-                configMap.put(String.valueOf(k),v);
+
+        String key,k;
+        Object v;
+        String[] splits;
+        StringBuilder builder;
+
+        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+            k = String.valueOf(entry.getKey());
+            v = entry.getValue();
+            if (k.startsWith(prefix) && k.contains(PATH_SEPARATOR)) {
+                key = k.substring(k.lastIndexOf(PATH_SEPARATOR) + 1);
+                if(key.contains(STRIKE_THROUGH)){
+                    splits = key.split(STRIKE_THROUGH);
+                    builder = new StringBuilder(splits[0]);
+                    for(int i=1,len=splits.length; i < len; ++i){
+                        builder.append(splits[i].substring(0, 1).toUpperCase()).append(splits[i].substring(1));
+                    }
+                    key = builder.toString();
+                }
+                configMap.put(key,v);
             }
-        });
+        }
         return configMap;
     }
 }
