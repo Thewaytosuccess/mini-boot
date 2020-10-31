@@ -10,7 +10,9 @@ public enum ExceptionEnum {
      */
     ILLEGAL_ARGUMENT("illegal_argument","参数非法"),
     UNKNOWN_ERROR("unknown_error","未知异常"),
-    CLASS_IMPL_NOT_FOUND("class_impl_not_found","未找到实现类");
+    CLASS_IMPL_NOT_FOUND("class_impl_not_found","未找到实现类"),
+    STARTER_NOT_FOUND("starter not found","未找到启动类"),
+    CONTROLLER_ADVICE_DUPLICATED("controller_advice_duplicated","异常处理类不能有多个");
 
     private final String code;
 

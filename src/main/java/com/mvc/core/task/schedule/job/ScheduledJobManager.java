@@ -2,7 +2,6 @@ package com.mvc.core.task.schedule.job;
 
 import com.mvc.annotation.enable.EnableScheduling;
 import com.mvc.annotation.method.schedule.Scheduled;
-import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.core.util.DateUtil;
@@ -17,6 +16,7 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -33,21 +33,24 @@ public class ScheduledJobManager {
 
     private Set<Method> tasks;
 
-    public void scan(){
-        if(Objects.isNull(tasks)){
+    public void init(){
+        IocContainer container = IocContainer.getInstance();
+        AtomicBoolean global = new AtomicBoolean(false);
+        Optional.ofNullable(container.getSpringBootApplication()).ifPresent(e ->
+                global.set(e.isAnnotationPresent(EnableScheduling.class)));
+
+        List<Class<?>> classes = container.getClasses();
+        if(!global.get()){
+            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableScheduling.class))
+                    .collect(Collectors.toList());
+        }
+
+        if(!classes.isEmpty()){
             tasks = new HashSet<>();
         }
-
-        List<Class<?>> classes = IocContainer.getInstance().getClasses();
-        boolean global = classes.stream().anyMatch(e -> e.isAnnotationPresent(SpringBootApplication.class) &&
-                e.isAnnotationPresent(EnableScheduling.class));
-        if(!global){
-            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableScheduling.class)).collect(Collectors.toList());
-        }
-        classes.forEach(e -> tasks.addAll(Arrays.stream(e.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(Scheduled.class))
-                .collect(Collectors.toSet())));
-
-        if(!tasks.isEmpty()){
+        classes.forEach(e -> tasks.addAll(Arrays.stream(e.getDeclaredMethods()).filter(m ->
+                m.isAnnotationPresent(Scheduled.class)).collect(Collectors.toSet())));
+        if(Objects.nonNull(tasks) && !tasks.isEmpty()){
             start();
         }
     }
@@ -110,9 +113,11 @@ public class ScheduledJobManager {
 
     private String getValue(String key){
         if(key.startsWith(ConstantPool.KEY_PREFIX) && key.endsWith(ConstantPool.KEY_SUFFIX)){
-            key = key.substring(2,key.length() - 1);
+            key = key.substring(2, key.length() - 1);
             if(!key.isEmpty()){
                 return ConfigurationProcessor.getInstance().get(key);
+            }else{
+                throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
             }
         }
         return key;
@@ -123,7 +128,7 @@ public class ScheduledJobManager {
         int index = count.incrementAndGet();
         ScheduleConfig config = getScheduleConfig(method);
         String scheduleName = config.getName();
-        if(scheduleName.isEmpty()){
+        if(Objects.isNull(scheduleName) || scheduleName.isEmpty()){
             scheduleName = "DEFAULT_SCHEDULE_" + index;
         }
 
@@ -138,18 +143,18 @@ public class ScheduledJobManager {
 
     private Trigger buildTrigger(ScheduleConfig config,int index){
         String triggerName = config.getTriggerName();
-        if(triggerName.isEmpty()){
+        if(Objects.isNull(triggerName) || triggerName.isEmpty()){
             triggerName = "TRIGGER_" + index;
         }
         String triggerGroup = config.getTriggerGroup();
-        if(triggerGroup.isEmpty()){
+        if(Objects.isNull(triggerGroup) || triggerGroup.isEmpty()){
             triggerGroup = "TRIGGER_GROUP_" + index;
         }
         TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger().withIdentity(triggerName,triggerGroup);
 
         String startAt = config.getStartAt();
         String pattern = config.getStartAtPattern();
-        if(!startAt.isEmpty()){
+        if(Objects.nonNull(startAt) && !startAt.isEmpty()){
             triggerBuilder.startAt(DateUtil.parse(startAt,pattern));
         }else{
             triggerBuilder.startNow();
@@ -157,7 +162,7 @@ public class ScheduledJobManager {
 
         String endAt = config.getEndAt();
         pattern = config.getEndAtPattern();
-        if(!endAt.isEmpty()){
+        if(Objects.nonNull(endAt) && !endAt.isEmpty()){
             triggerBuilder.endAt(DateUtil.parse(endAt,pattern));
         }
 
@@ -167,7 +172,7 @@ public class ScheduledJobManager {
         }
 
         JobDataMap jobData = config.getJobDataMap();
-        if(Objects.nonNull(jobData)){
+        if(Objects.nonNull(jobData) && !jobData.isEmpty()){
             triggerBuilder.usingJobData(jobData);
         }
         return triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule(config.getCron())).build();
@@ -176,18 +181,18 @@ public class ScheduledJobManager {
     private JobDetail buildJob(ScheduleConfig config,int index,Method method){
         DefaultJob job = new DefaultJob(method);
         String jobName = config.getJobName();
-        if(jobName.isEmpty()){
+        if(Objects.isNull(jobName) || jobName.isEmpty()){
             jobName = "JOB_" + index;
         }
 
         String jobGroup = config.getJobGroup();
-        if(jobGroup.isEmpty()){
+        if(Objects.isNull(jobGroup) || jobGroup.isEmpty()){
             jobGroup = "JOB_GROUP_" + index;
         }
 
         JobBuilder jobBuilder = JobBuilder.newJob(job.getClass()).withIdentity(jobName, jobGroup);
         JobDataMap jobData = config.getJobDataMap();
-        if(Objects.nonNull(jobData)){
+        if(Objects.nonNull(jobData) && !jobData.isEmpty()){
             jobBuilder.setJobData(jobData);
         }
         return jobBuilder.build();

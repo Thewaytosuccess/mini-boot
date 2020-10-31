@@ -167,9 +167,8 @@ public class ConfigurationProcessor {
     }
 
     private void setConfigValue(Object instance){
-        Optional.ofNullable(instance).ifPresent(e -> Arrays.stream(e.getClass().getDeclaredFields())
-                .filter(f -> f.isAnnotationPresent(Value.class)).forEach(f -> setValueByAnnotation(f,instance))
-        );
+        Optional.ofNullable(instance).ifPresent(e -> Arrays.stream(e.getClass().getDeclaredFields()).filter(f
+                -> f.isAnnotationPresent(Value.class)).forEach(f -> setValueByAnnotation(f,instance)));
     }
 
     private void setValueByAnnotation(Field f,Object instance){

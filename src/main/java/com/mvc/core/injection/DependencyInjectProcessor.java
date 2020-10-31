@@ -1,11 +1,18 @@
 package com.mvc.core.injection;
 
+import com.mvc.annotation.aop.aspect.Interceptor;
 import com.mvc.annotation.bean.ioc.Autowired;
 import com.mvc.annotation.bean.ioc.Bean;
 import com.mvc.annotation.bean.ioc.Qualifier;
 import com.mvc.annotation.bean.ioc.Resource;
+import com.mvc.annotation.config.Configuration;
+import com.mvc.annotation.exception.ControllerAdvice;
+import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.annotation.type.component.Component;
+import com.mvc.annotation.type.controller.Controller;
+import com.mvc.annotation.type.controller.RestController;
 import com.mvc.annotation.type.service.Service;
+import com.mvc.core.aspect.AspectProcessor;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.core.exception.ExceptionHandler;
 import com.mvc.core.exception.ExceptionWrapper;
@@ -33,14 +40,37 @@ public class DependencyInjectProcessor {
     /**
      * 接口和对应的子类映射
      */
-    private Map<Class<?>, List<Class<?>>> interfaceInstanceMap;
+    private Map<Class<?>, List<Class<?>>> interfaceImplMap;
 
     /**
      * 类名和类的映射
      */
     private Map<String,Class<?>> nameClassMap;
 
-    public void inject(Class<?> clazz) throws Exception{
+    public void inject(){
+        Optional.ofNullable(IocContainer.getInstance().getClasses()).ifPresent(e ->
+            e.forEach(clazz -> {
+                try {
+                    //待处理@Controller
+                    if(clazz.isAnnotationPresent(Configuration.class) ||
+                       clazz.isAnnotationPresent(Component.class) ||
+                       clazz.isAnnotationPresent(Service.class) ||
+                       clazz.isAnnotationPresent(Interceptor.class) ||
+                       clazz.isAnnotationPresent(RestController.class) ||
+                       clazz.isAnnotationPresent(Controller.class) ||
+                       clazz.isAnnotationPresent(SpringBootApplication.class) ||
+                       clazz.isAnnotationPresent(ControllerAdvice.class)){
+                        //ioc
+                        inject(clazz);
+                    }
+                } catch (Exception ex) {
+                    throw new ExceptionWrapper(ex);
+                }
+            })
+        );
+    }
+
+    private void inject(Class<?> clazz) throws Exception{
         Object instance = clazz.newInstance();
         //1.先注入配置
         ConfigurationProcessor.getInstance().inject(instance);
@@ -50,7 +80,22 @@ public class DependencyInjectProcessor {
         fieldsInject(instance,Arrays.asList(instance.getClass().getDeclaredFields()),true);
     }
 
-    public void reInject(Class<?> clazz,Set<Class<?>> set){
+    public void reInject(){
+        if(AspectProcessor.getInstance().reInjected()){
+            Set<Class<?>> set = new HashSet<>();
+            Map<Class<?>, Class<?>[]> reInjected = AspectProcessor.getInstance().getReInjected();
+            reInjected.forEach((k,v) -> {
+                set.add(k);
+                set.addAll(Arrays.asList(v));
+            });
+            if(!set.isEmpty()){
+                //将代理对象重新注入到依赖它的类中
+                IocContainer.getInstance().getClasses().forEach(e -> reInject(e,set));
+            }
+        }
+    }
+
+    private void reInject(Class<?> clazz,Set<Class<?>> set){
         List<Field> fields = Arrays.stream(clazz.getDeclaredFields()).filter(e -> set.contains(e.getType())).
                 collect(Collectors.toList());
         if(!fields.isEmpty()){
@@ -116,7 +161,7 @@ public class DependencyInjectProcessor {
                     f.set(instance, container.getClassInstance(f.getType()));
                 }else{
                     //尝试通过接口查询对应的子类
-                    List<Class<?>> children = interfaceInstanceMap.get(f.getType());
+                    List<Class<?>> children = interfaceImplMap.get(f.getType());
                     if(children.size() == 1){
                         //接口仅有一个实现类
                         f.set(instance, container.getClassInstance(children.get(0)));
@@ -142,17 +187,17 @@ public class DependencyInjectProcessor {
         IocContainer.getInstance().addInstance(clazz, instance);
         Class<?>[] interfaces = clazz.getInterfaces();
         for(Class<?> interfaceClass:interfaces){
-            if(Objects.isNull(interfaceInstanceMap)){
-                interfaceInstanceMap = new HashMap<>(16);
+            if(Objects.isNull(interfaceImplMap)){
+                interfaceImplMap = new HashMap<>(16);
             }
 
-            List<Class<?>> children = interfaceInstanceMap.get(interfaceClass);
+            List<Class<?>> children = interfaceImplMap.get(interfaceClass);
             if(Objects.isNull(children)){
                 children = new ArrayList<>();
             }
             children.add(clazz);
             //建立接口和子类的映射关系，以便通过接口来查询到对应的子类
-            interfaceInstanceMap.put(interfaceClass,children);
+            interfaceImplMap.put(interfaceClass,children);
         }
         String className = getClassName(clazz);
         if(!className.isEmpty()){

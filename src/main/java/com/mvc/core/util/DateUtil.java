@@ -32,7 +32,7 @@ public class DateUtil {
 
     private static String getPattern(String...patterns){
         String pattern = "yyyy-MM-dd HH:mm:ss";
-        if(patterns.length > 0){
+        if(Objects.nonNull(patterns) && patterns.length > 0){
             pattern = patterns[0];
         }
         return pattern;

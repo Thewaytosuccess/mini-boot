@@ -49,9 +49,9 @@ public class DataBindingProcessor {
                 Map<String, String> parameterMap = getParameterMap(parameterNames, getValues(separators, uri));
                 Optional<String> first = patternMap.keySet().stream().filter(uri::matches).findFirst();
                 if(first.isPresent()){
-                    MethodInfo info = map.get(patternMap.get(first.get()));
-                    info.getParams().forEach(e -> setValue(new String[]{parameterMap.get(e.getName())},e));
-                    return info;
+                    MethodInfo method = map.get(patternMap.get(first.get()));
+                    method.getParams().forEach(e -> setValue(new String[]{parameterMap.get(e.getName())},e));
+                    return method;
                 }
             }
         }

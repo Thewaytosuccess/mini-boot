@@ -1,7 +1,6 @@
 package com.mvc.core.aspect;
 
 import com.mvc.annotation.aop.advice.*;
-import com.mvc.annotation.aop.aspect.Aspect;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.AdviceEnum;
@@ -67,22 +66,20 @@ public class AspectProcessor {
      *  3.javassist动态代理
      */
     public void process(Class<?> clazz) {
-        if(clazz.isAnnotationPresent(Aspect.class)){
-            Method[] declaredMethods = clazz.getDeclaredMethods();
-            String adviceMethod;
-            for(Method m:declaredMethods){
-                adviceMethod = clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName();
-                if(m.isAnnotationPresent(Before.class)){
-                    parseExpression(m.getAnnotation(Before.class).value(),adviceMethod,AdviceEnum.Before);
-                }else if(m.isAnnotationPresent(Around.class)){
-                    parseExpression(m.getAnnotation(Around.class).value(), adviceMethod, AdviceEnum.Around);
-                }else if(m.isAnnotationPresent(After.class)){
-                    parseExpression(m.getAnnotation(After.class).value(), adviceMethod, AdviceEnum.After);
-                }else if(m.isAnnotationPresent(AfterReturning.class)){
-                    parseExpression(m.getAnnotation(AfterReturning.class).value(), adviceMethod, AdviceEnum.AfterReturning);
-                }else if(m.isAnnotationPresent(AfterThrowing.class)){
-                    parseExpression(m.getAnnotation(AfterThrowing.class).value(), adviceMethod, AdviceEnum.AfterThrowing);
-                }
+        Method[] declaredMethods = clazz.getDeclaredMethods();
+        String adviceMethod;
+        for(Method m:declaredMethods){
+            adviceMethod = clazz.getName() + ConstantPool.PATH_SEPARATOR + m.getName();
+            if(m.isAnnotationPresent(Before.class)){
+                parseExpression(m.getAnnotation(Before.class).value(),adviceMethod,AdviceEnum.Before);
+            }else if(m.isAnnotationPresent(Around.class)){
+                parseExpression(m.getAnnotation(Around.class).value(), adviceMethod, AdviceEnum.Around);
+            }else if(m.isAnnotationPresent(After.class)){
+                parseExpression(m.getAnnotation(After.class).value(), adviceMethod, AdviceEnum.After);
+            }else if(m.isAnnotationPresent(AfterReturning.class)){
+                parseExpression(m.getAnnotation(AfterReturning.class).value(), adviceMethod, AdviceEnum.AfterReturning);
+            }else if(m.isAnnotationPresent(AfterThrowing.class)){
+                parseExpression(m.getAnnotation(AfterThrowing.class).value(), adviceMethod, AdviceEnum.AfterThrowing);
             }
         }
     }
@@ -124,7 +121,7 @@ public class AspectProcessor {
         //jdk proxy
         Set<Map.Entry<Class<?>, Class<?>[]>> entries = classImplInterfacesMap.entrySet();
         Optional<Map.Entry<Class<?>, Class<?>[]>> first = entries.stream().filter(e -> Arrays.stream(
-                e.getValue()).anyMatch(c -> c == interfaceOrSuper)).findFirst();
+                e.getValue()).anyMatch(c -> c == interfaceOrSuper)).findAny();
         if(first.isPresent()){
             return first.get().getKey().getName();
         }
@@ -175,9 +172,7 @@ public class AspectProcessor {
 
     private Object createProxy(Object target, List<Signature> info, ClassLoader classLoader,
                                       Class<?>[] interfaces, boolean jdkProxy){
-        if(Objects.isNull(proxyJoinPointMap)){
-            proxyJoinPointMap = new HashMap<>(16);
-        }
+        proxyJoinPointMap = getProxyJoinPointMap(proxyJoinPointMap);
         Object proxy;
         if(jdkProxy){
             JdkProxy proxyClass = new JdkProxy(target,info,true);
@@ -193,9 +188,7 @@ public class AspectProcessor {
 
     private Object createAroundProxy(Object target, List<Signature> methods, ClassLoader classLoader,
                                             Class<?>[] interfaces, boolean jdkProxy){
-        if(Objects.isNull(proxyJoinPointMap)){
-            proxyJoinPointMap = new HashMap<>(16);
-        }
+        proxyJoinPointMap = getProxyJoinPointMap(proxyJoinPointMap);
         Object proxy;
         if(jdkProxy){
             JdkProxy proxyClass = new JdkAroundProxy(target,methods, true);
@@ -207,6 +200,10 @@ public class AspectProcessor {
             proxyJoinPointMap.put(proxy.getClass(),proxyClass);
         }
         return proxy;
+    }
+
+    private Map<Class<?>, ProceedingJoinPoint> getProxyJoinPointMap(Map<Class<?>, ProceedingJoinPoint> map){
+        return Objects.isNull(map) ? new HashMap<>() : map;
     }
 
     /**

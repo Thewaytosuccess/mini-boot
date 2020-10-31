@@ -56,14 +56,10 @@ public class ControllerAdviceHandler {
             return methods;
         }
 
+        String finalAdviceMethod = adviceMethod;
         IocContainer.getInstance().getControllers().forEach(clazz -> Arrays.stream(clazz.getDeclaredMethods())
                 .forEach(m -> methods.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                clazz.getName() + PATH_SEPARATOR + m.getName()))));
-        String finalAdviceMethod = adviceMethod;
-        methods.forEach(e -> {
-            e.setAdviceEnum(AdviceEnum.AfterThrowing);
-            e.setAdviceMethod(finalAdviceMethod);
-        });
+                clazz.getName() + PATH_SEPARATOR + m.getName(),AdviceEnum.AfterThrowing, finalAdviceMethod))));
         return methods;
     }
 }

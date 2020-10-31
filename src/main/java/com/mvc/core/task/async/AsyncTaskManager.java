@@ -2,13 +2,13 @@ package com.mvc.core.task.async;
 
 import com.mvc.annotation.method.async.Async;
 import com.mvc.annotation.enable.EnableAsync;
-import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.core.injection.IocContainer;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -27,25 +27,26 @@ public class AsyncTaskManager {
     private Set<Signature> tasks;
 
     public boolean isAsync(Signature signature){
-        if(Objects.isNull(tasks)){
-            return false;
-        }
-        return tasks.contains(signature);
+        return Objects.nonNull(tasks) && tasks.contains(signature);
     }
 
     public Set<Signature> scan(){
-        if(Objects.isNull(tasks)){
-            tasks = new HashSet<>();
+        IocContainer container = IocContainer.getInstance();
+        List<Class<?>> classes = container.getClasses();
+        AtomicBoolean global = new AtomicBoolean(false);
+
+        Optional.ofNullable(container.getSpringBootApplication()).ifPresent(e ->
+                global.set(e.isAnnotationPresent(EnableAsync.class)));
+        if(!global.get()){
+            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableAsync.class))
+                    .collect(Collectors.toList());
         }
 
-        List<Class<?>> classes = IocContainer.getInstance().getClasses();
-        boolean global = classes.stream().anyMatch(e -> e.isAnnotationPresent(SpringBootApplication.class) &&
-                e.isAnnotationPresent(EnableAsync.class));
-        if(!global){
-            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableAsync.class)).collect(Collectors.toList());
+        if(!classes.isEmpty()){
+            tasks = new HashSet<>();
         }
-        classes.forEach(e -> tasks.addAll(Arrays.stream(e.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(Async.class))
-                .map(this::getSignature).collect(Collectors.toSet())));
+        classes.forEach(e -> tasks.addAll(Arrays.stream(e.getDeclaredMethods()).filter(m ->
+                m.isAnnotationPresent(Async.class)).map(this::getSignature).collect(Collectors.toSet())));
         return tasks;
     }
 

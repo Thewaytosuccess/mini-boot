@@ -4,7 +4,7 @@ import com.mvc.core.task.async.TaskExecutor;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.injection.ConfigurationProcessor;
 import com.mvc.core.interceptor.InterceptorProcessor;
-import com.mvc.core.task.life.LifeCycleManager;
+import com.mvc.core.task.init.BeanInitializer;
 import com.mvc.core.mapping.HandlerMapping;
 import com.mvc.core.invocation.InvocationProcessor;
 
@@ -85,7 +85,7 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     public void destroy() {
-        LifeCycleManager.getInstance().destroy();
+        BeanInitializer.getInstance().destroy();
         TaskExecutor.getInstance().shutdown();
         super.destroy();
     }

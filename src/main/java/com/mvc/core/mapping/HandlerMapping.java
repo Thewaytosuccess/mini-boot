@@ -13,6 +13,7 @@ import com.mvc.annotation.type.component.ComponentScan;
 import com.mvc.annotation.type.controller.Controller;
 import com.mvc.annotation.type.controller.RestController;
 import com.mvc.annotation.type.service.Service;
+import com.mvc.core.injection.DependencyInjectProcessor;
 import com.mvc.entity.method.MethodInfo;
 import com.mvc.entity.method.Param;
 import com.mvc.enums.ExceptionEnum;
@@ -21,7 +22,7 @@ import com.mvc.core.aspect.AspectHandler;
 import com.mvc.core.binding.DataBindingProcessor;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.injection.IocContainer;
-import com.mvc.core.task.life.LifeCycleManager;
+import com.mvc.core.task.init.BeanInitializer;
 import com.mvc.core.task.schedule.job.ScheduledJobManager;
 
 import java.io.*;
@@ -75,22 +76,23 @@ public class HandlerMapping {
         sortAndFilter();
 
         //3.注册所有带注解的类到ioc容器
-        IocContainer container = IocContainer.getInstance();
-        container.inject();
+        DependencyInjectProcessor injectProcessor = DependencyInjectProcessor.getInstance();
+        injectProcessor.inject();
         //4.mvc建立url和方法的映射
-        buildMapping(container.getControllers());
+        buildMapping(IocContainer.getInstance().getControllers());
 
         //5.切面扫描
-        container.aspectScan();
+        AspectHandler aspectHandler = AspectHandler.getInstance();
+        aspectHandler.aspectScan();
         //6.为切面指向的类创建代理
-        AspectHandler.getInstance().createProxy();
+        aspectHandler.createProxy();
         //7.将代理重新注入ioc容器
-        container.reInject();
+        injectProcessor.reInject();
 
         //8.bean初始化
-        LifeCycleManager.getInstance().init();
-        //9.定时任务扫描
-        ScheduledJobManager.getInstance().scan();
+        BeanInitializer.getInstance().init();
+        //9.开启定时任务
+        ScheduledJobManager.getInstance().init();
         print();
     }
 
@@ -143,7 +145,8 @@ public class HandlerMapping {
         List<Class<?>> controllerClasses = new ArrayList<>();
         List<Class<?>> restControllerClasses = new ArrayList<>();
         List<Class<?>> interceptorClasses = new ArrayList<>();
-        AtomicReference<Class<?>> controllerAdvice = new AtomicReference<>();
+        List<Class<?>> controllerAdvice = new ArrayList<>();
+        List<Class<?>> application = new ArrayList<>(1);
 
         paths.forEach(e -> {
             try {
@@ -159,14 +162,22 @@ public class HandlerMapping {
                 }else if(clazz.isAnnotationPresent(Controller.class)){
                     controllerClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(ControllerAdvice.class)){
-                    controllerAdvice.set(clazz);
+                    controllerAdvice.add(clazz);
                 }else if(clazz.isAnnotationPresent(Interceptor.class)){
                     interceptorClasses.add(clazz);
+                }else if(clazz.isAnnotationPresent(SpringBootApplication.class)){
+                    application.add(clazz);
                 }
             } catch (ClassNotFoundException ex) {
                 throw new ExceptionWrapper(ex);
             }
         });
+
+        if(controllerAdvice.size() > 1){
+            throw new ExceptionWrapper(ExceptionEnum.CONTROLLER_ADVICE_DUPLICATED);
+        }else if(application.size() != 1){
+            throw new ExceptionWrapper(ExceptionEnum.STARTER_NOT_FOUND);
+        }
 
         List<Class<?>> classes = IocContainer.getInstance().getClasses();
         classes.addAll(configurationClasses);
@@ -175,11 +186,10 @@ public class HandlerMapping {
         classes.addAll(restControllerClasses);
         classes.addAll(controllerClasses);
         classes.addAll(interceptorClasses);
-
-        Class<?> advice = controllerAdvice.get();
-        if(Objects.nonNull(advice)){
-            classes.add(advice);
-        }
+        //倒数第二个作为启动类
+        classes.addAll(application);
+        //倒数第一个作为异常处理类
+        classes.addAll(controllerAdvice);
     }
 
     public MethodInfo getMethodInfo(String uri,String method){
@@ -315,25 +325,25 @@ public class HandlerMapping {
             methodInfo = new MethodInfo(clazz.getName() + PATH_SEPARATOR + method.getName(),
                     parseParameters(method));
             if(method.isAnnotationPresent(GetMapping.class)){
-                getMap = buildMap(getMap);
+                getMap = initMap(getMap);
                 getMap.put(getUri(method.getAnnotation(GetMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(PostMapping.class)){
-                postMap = buildMap(postMap);
+                postMap = initMap(postMap);
                 postMap.put(getUri(method.getAnnotation(PostMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(DeleteMapping.class)){
-                deleteMap = buildMap(deleteMap);
+                deleteMap = initMap(deleteMap);
                 deleteMap.put(getUri(method.getAnnotation(DeleteMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(PutMapping.class)){
-                putMap = buildMap(putMap);
+                putMap = initMap(putMap);
                 putMap.put(getUri(method.getAnnotation(PutMapping.class).value()), methodInfo);
             }else if(method.isAnnotationPresent(RequestMapping.class)){
-                requestMap = buildMap(requestMap);
+                requestMap = initMap(requestMap);
                 requestMap.put(getUri(method.getAnnotation(RequestMapping.class).value()), methodInfo);
             }
         }
     }
 
-    private Map<String, MethodInfo> buildMap(Map<String, MethodInfo> map){
+    private Map<String, MethodInfo> initMap(Map<String, MethodInfo> map){
         return Objects.isNull(map) ? new HashMap<>(16) : map;
     }
 

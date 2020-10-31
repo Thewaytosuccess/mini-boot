@@ -1,11 +1,19 @@
 package com.mvc.core.aspect;
 
+import com.mvc.annotation.aop.aspect.Aspect;
+import com.mvc.annotation.aop.aspect.Interceptor;
+import com.mvc.annotation.config.Configuration;
+import com.mvc.annotation.enable.EnableAspectJAutoProxy;
+import com.mvc.annotation.type.component.Component;
+import com.mvc.core.interceptor.HandlerInterceptor;
+import com.mvc.core.interceptor.InterceptorProcessor;
 import com.mvc.entity.method.Signature;
 import com.mvc.core.injection.IocContainer;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.mvc.enums.constant.ConstantPool.PATH_SEPARATOR;
 
@@ -22,6 +30,41 @@ public class AspectHandler {
 
     private List<Class<?>> getClasses(){
         return IocContainer.getInstance().getClasses();
+    }
+
+    public void aspectScan() {
+        AtomicBoolean global = new AtomicBoolean(false);
+        Optional.ofNullable(IocContainer.getInstance().getSpringBootApplication()).ifPresent(e ->
+                global.set(e.isAnnotationPresent(EnableAspectJAutoProxy.class)));
+
+        Optional.of(getClasses()).ifPresent(e ->
+            e.forEach(clazz -> {
+                if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class)){
+                    if(!global.get()){
+                        //非全局配置
+                        if(clazz.isAnnotationPresent(EnableAspectJAutoProxy.class) && clazz.isAnnotationPresent(
+                                Aspect.class)){
+                            //register aspect
+                            AspectProcessor.getInstance().process(clazz);
+                        }else if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
+                            //register interceptor
+                            InterceptorProcessor.getInstance().add(clazz);
+                        }
+                    }else{
+                        if(clazz.isAnnotationPresent(Aspect.class)){
+                            AspectProcessor.getInstance().process(clazz);
+                        } else if (Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)) {
+                            InterceptorProcessor.getInstance().add(clazz);
+                        }
+                    }
+                } else if (clazz.isAnnotationPresent(Interceptor.class)) {
+                    if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
+                        //register interceptor
+                        InterceptorProcessor.getInstance().add(clazz);
+                    }
+                }
+            })
+        );
     }
 
     public void createProxy() {
@@ -41,7 +84,7 @@ public class AspectHandler {
     }
 
     private void getAnnotatedMethod(Class<?> clazz, Set<Class<?>> annotations, Map<Class<?>, Signature> annotationMethodMap,
-                                    List<Signature> classes) {
+                                    List<Signature> methods) {
         Method[] declaredMethods = clazz.getDeclaredMethods();
         Signature signature;
         Annotation[] declaredAnnotations;
@@ -51,7 +94,7 @@ public class AspectHandler {
                 if(annotations.contains(a.annotationType())){
                     signature = annotationMethodMap.get(a.annotationType());
                     signature.setMethodName(clazz.getName() + PATH_SEPARATOR + m.getName());
-                    classes.add(new Signature(m.getParameterCount(),m.getParameterTypes(), signature.getMethodName(),
+                    methods.add(new Signature(m.getParameterCount(),m.getParameterTypes(), signature.getMethodName(),
                             signature.getAdviceEnum(),signature.getAdviceMethod()));
                     break;
                 }
