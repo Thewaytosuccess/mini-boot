@@ -1,7 +1,6 @@
 package com.mvc.controller.interceptor;
 
-import com.mvc.annotation.aop.aspect.Interceptor;
-import com.mvc.util.interceptor.HandlerInterceptor;
+import com.mvc.core.interceptor.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

@@ -1,8 +1,7 @@
 package com.mvc.controller.exception;
 
-import com.mvc.annotation.exception.ControllerAdvice;
-import com.mvc.util.exception.ExceptionHandler;
-import com.mvc.util.exception.ExceptionWrapper;
+import com.mvc.core.exception.ExceptionHandler;
+import com.mvc.core.exception.ExceptionWrapper;
 
 /**
  * @author xhzy

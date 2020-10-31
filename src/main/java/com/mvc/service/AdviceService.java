@@ -3,7 +3,7 @@ package com.mvc.service;
 import com.mvc.annotation.aop.advice.*;
 import com.mvc.annotation.aop.aspect.Aspect;
 import com.mvc.annotation.config.Configuration;
-import com.mvc.util.proxy.ProceedingJoinPoint;
+import com.mvc.core.proxy.ProceedingJoinPoint;
 
 /**
  * @author xhzy

@@ -1,6 +1,6 @@
 package com.mvc.annotation.exception;
 
-import com.mvc.util.exception.ExceptionHandler;
+import com.mvc.core.exception.ExceptionHandler;
 
 import java.lang.annotation.*;
 

@@ -1,7 +1,7 @@
 package com.mvc.annotation.method.schedule;
 
-import com.mvc.util.task.schedule.config.DefaultScheduleConfig;
-import com.mvc.util.task.schedule.config.ScheduleConfigAdapter;
+import com.mvc.core.task.schedule.config.DefaultScheduleConfig;
+import com.mvc.core.task.schedule.config.ScheduleConfigAdapter;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

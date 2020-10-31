@@ -1,12 +1,12 @@
 package com.mvc.servlet;
 
-import com.mvc.util.task.async.TaskExecutor;
-import com.mvc.util.exception.ExceptionWrapper;
-import com.mvc.util.injection.ConfigurationProcessor;
-import com.mvc.util.interceptor.InterceptorProcessor;
-import com.mvc.util.task.life.LifeCycleManager;
-import com.mvc.util.mapping.HandlerMapping;
-import com.mvc.util.invocation.InvocationProcessor;
+import com.mvc.core.task.async.TaskExecutor;
+import com.mvc.core.exception.ExceptionWrapper;
+import com.mvc.core.injection.ConfigurationProcessor;
+import com.mvc.core.interceptor.InterceptorProcessor;
+import com.mvc.core.task.life.LifeCycleManager;
+import com.mvc.core.mapping.HandlerMapping;
+import com.mvc.core.invocation.InvocationProcessor;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.annotation.WebServlet;
