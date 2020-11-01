@@ -19,7 +19,7 @@ public class ExceptionWrapper extends RuntimeException {
 
     public ExceptionWrapper(Exception e) {
         this.code = ExceptionEnum.UNKNOWN_ERROR.getCode();
-        this.message = e.getMessage();
+        this.message = e.toString();
     }
 
     public String getCode() {
@@ -37,4 +37,11 @@ public class ExceptionWrapper extends RuntimeException {
         return jsonObject;
     }
 
+    @Override
+    public String toString() {
+        return "ExceptionWrapper{" +
+                "code='" + code + '\'' +
+                ", message='" + message + '\'' +
+                '}';
+    }
 }

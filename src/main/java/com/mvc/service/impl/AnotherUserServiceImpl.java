@@ -1,6 +1,7 @@
 package com.mvc.service.impl;
 
 import com.mvc.annotation.bean.ioc.Autowired;
+import com.mvc.annotation.method.async.Async;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.entity.test.DataSourceConfig;
 import com.mvc.service.UserService;
@@ -27,6 +28,7 @@ public class AnotherUserServiceImpl implements UserService {
         System.out.println("AnotherUserServiceImpl 完成销毁。。。");
     }
 
+    @Async
     @Override
     public DataSourceConfig getDataSourceConfig(){
         return dataSourceConfig;

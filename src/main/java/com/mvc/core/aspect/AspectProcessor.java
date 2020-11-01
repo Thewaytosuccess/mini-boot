@@ -95,7 +95,10 @@ public class AspectProcessor {
         //统一异常处理
         ControllerAdviceHandler.getInstance().handle().forEach(this::buildClassMethodMap);
         //异步任务扫描
-        AsyncTaskManager.getInstance().scan().forEach(this::buildClassMethodMap);
+        Set<Signature> signatures = AsyncTaskManager.getInstance().scan();
+        if(Objects.nonNull(signatures)){
+            signatures.forEach(this::buildClassMethodMap);
+        }
 
         if(Objects.isNull(classMethodMap)){
             return;
@@ -362,6 +365,9 @@ public class AspectProcessor {
 
     private void buildClassMethodMap(Signature signature){
         try{
+            if(Objects.isNull(signature.getAdviceEnum())){
+                signature.setAdviceEnum(AdviceEnum.Before);
+            }
             String methodName = signature.getMethodName();
             Class<?> key = Class.forName(methodName.substring(0, methodName.lastIndexOf(PATH_SEPARATOR)));
             if(Objects.isNull(classMethodMap)){

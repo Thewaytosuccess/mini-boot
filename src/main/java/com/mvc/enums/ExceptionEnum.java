@@ -12,7 +12,8 @@ public enum ExceptionEnum {
     UNKNOWN_ERROR("unknown_error","未知异常"),
     CLASS_IMPL_NOT_FOUND("class_impl_not_found","未找到实现类"),
     STARTER_NOT_FOUND("starter not found","未找到启动类"),
-    CONTROLLER_ADVICE_DUPLICATED("controller_advice_duplicated","异常处理类不能有多个");
+    STARTER_DUPLICATED("starter duplicated","启动类只能有且仅有一个"),
+    CONTROLLER_ADVICE_DUPLICATED("controller_advice_duplicated","异常处理类至多只能有一个");
 
     private final String code;
 

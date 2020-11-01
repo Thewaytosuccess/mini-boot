@@ -48,26 +48,25 @@ public class DependencyInjectProcessor {
     private Map<String,Class<?>> nameClassMap;
 
     public void inject(){
-        Optional.ofNullable(IocContainer.getInstance().getClasses()).ifPresent(e ->
-            e.forEach(clazz -> {
-                try {
-                    //待处理@Controller
-                    if(clazz.isAnnotationPresent(Configuration.class) ||
-                       clazz.isAnnotationPresent(Component.class) ||
-                       clazz.isAnnotationPresent(Service.class) ||
-                       clazz.isAnnotationPresent(Interceptor.class) ||
-                       clazz.isAnnotationPresent(RestController.class) ||
-                       clazz.isAnnotationPresent(Controller.class) ||
-                       clazz.isAnnotationPresent(SpringBootApplication.class) ||
-                       clazz.isAnnotationPresent(ControllerAdvice.class)){
-                        //ioc
-                        inject(clazz);
-                    }
-                } catch (Exception ex) {
-                    throw new ExceptionWrapper(ex);
+        IocContainer.getInstance().getClasses().forEach(clazz -> {
+            try {
+                //待处理@Controller
+                if (clazz.isAnnotationPresent(Configuration.class) ||
+                    clazz.isAnnotationPresent(Component.class) ||
+                    clazz.isAnnotationPresent(Service.class) ||
+                    clazz.isAnnotationPresent(Interceptor.class) ||
+                    clazz.isAnnotationPresent(RestController.class) ||
+                    clazz.isAnnotationPresent(Controller.class) ||
+                    clazz.isAnnotationPresent(SpringBootApplication.class) ||
+                    clazz.isAnnotationPresent(ControllerAdvice.class)) {
+                    //ioc
+                    inject(clazz);
                 }
-            })
-        );
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                throw new ExceptionWrapper(ex);
+            }
+        });
     }
 
     private void inject(Class<?> clazz) throws Exception{

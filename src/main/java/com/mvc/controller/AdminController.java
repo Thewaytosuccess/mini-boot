@@ -9,7 +9,9 @@ import com.mvc.annotation.method.http.RequestMapping;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.type.controller.RestController;
+import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.entity.test.User;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.service.UserService;
 
 /**
@@ -27,8 +29,7 @@ public class AdminController {
 
     @GetMapping("/get")
     public Object getUser(){
-        throw new RuntimeException();
-        //return "get:username="+username;
+        throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
     }
 
     @PostMapping("/login")

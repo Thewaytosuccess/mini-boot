@@ -55,15 +55,8 @@ public class ProceedingJoinPoint {
     public Object proceed(){
         Signature signature = getSignature();
         try{
-            Object result;
-            if(AsyncTaskManager.getInstance().isAsync(signature)){
-                result = TaskExecutor.getInstance().getExecutor().submit(() -> jdkProxy ?
-                        method.invoke(target, args) : target.getClass().getDeclaredMethod(
-                        method.getName(), method.getParameterTypes()).invoke(target,args)).get();
-            }else{
-                result = jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(
-                        method.getName(), method.getParameterTypes()).invoke(target,args);
-            }
+            Object result = AsyncTaskManager.getInstance().isAsync(signature) ?
+                    TaskExecutor.getInstance().getExecutor().submit(this::invoke).get() : invoke();
             postHandle(signature);
             return result;
         } catch (Exception e){
@@ -71,6 +64,11 @@ public class ProceedingJoinPoint {
         } finally {
             afterCompletion(signature);
         }
+    }
+
+    private Object invoke() throws Exception{
+        return jdkProxy ? method.invoke(target, args) : target.getClass().getDeclaredMethod(
+                method.getName(), method.getParameterTypes()).invoke(target,args);
     }
 
     public void setMethod(List<Signature> methods){

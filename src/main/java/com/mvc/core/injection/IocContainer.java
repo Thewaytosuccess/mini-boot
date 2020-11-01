@@ -1,6 +1,5 @@
 package com.mvc.core.injection;
 
-import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.annotation.type.controller.Controller;
 import com.mvc.annotation.type.controller.RestController;
 
@@ -30,11 +29,6 @@ public class IocContainer {
      */
     private Map<Class<?>,Object> iocContainer;
 
-    /**
-     * 启动类：程序入口
-     */
-    private Class<?> springBootApplication;
-
     public void addClass(Class<?> clazz){
         if(Objects.isNull(clazz)){
             classes = new ArrayList<>();
@@ -50,23 +44,14 @@ public class IocContainer {
     }
 
     public List<Class<?>> getClasses(){
-        return Objects.nonNull(classes) ? classes : new ArrayList<>();
+        if(Objects.isNull(classes)){
+            classes = new ArrayList<>();
+        }
+        return classes;
     }
 
     public Object getClassInstance(Class<?> clazz){
         return Objects.nonNull(iocContainer) ? iocContainer.get(clazz) : null;
-    }
-
-    public Class<?> getSpringBootApplication(){
-        if(classes.size() == 1){
-            return classes.get(0);
-        }else{
-            if(classes.get(classes.size() - 1) != SpringBootApplication.class){
-                return classes.get(classes.size() - 2);
-            }else{
-                return classes.get(classes.size() - 1);
-            }
-        }
     }
 
     public List<Class<?>> getControllers() {

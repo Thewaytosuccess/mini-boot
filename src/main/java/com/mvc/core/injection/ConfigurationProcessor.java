@@ -216,14 +216,14 @@ public class ConfigurationProcessor {
 
     @Deprecated
     public void print(Object obj){
-        Optional.ofNullable(obj).ifPresent(e -> Arrays.stream(e.getClass().getDeclaredMethods())
-                .filter(m -> m.getName().startsWith("get")).forEach(m -> {
-                    try {
-                        System.out.println(m.invoke(obj));
-                    } catch (Exception ex) {
-                        throw new ExceptionWrapper(ex);
-                    }
-                })
+        Optional.ofNullable(obj).ifPresent(e -> Arrays.stream(e.getClass().getDeclaredMethods()).filter(m ->
+            m.getName().startsWith("get")).forEach(m -> {
+                try {
+                    System.out.println(m.invoke(obj));
+                } catch (Exception ex) {
+                    throw new ExceptionWrapper(ex);
+                }
+            })
         );
     }
 
@@ -236,7 +236,6 @@ public class ConfigurationProcessor {
             return null;
         }
 
-        configMap = getConfigMap(configMap);
         String key,k;
         Object v;
         String[] splits;
@@ -255,6 +254,7 @@ public class ConfigurationProcessor {
                     }
                     key = builder.toString();
                 }
+                configMap = getConfigMap(configMap);
                 configMap.put(key,v);
             }
         }

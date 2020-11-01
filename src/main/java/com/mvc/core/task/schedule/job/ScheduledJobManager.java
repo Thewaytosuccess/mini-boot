@@ -2,6 +2,7 @@ package com.mvc.core.task.schedule.job;
 
 import com.mvc.annotation.enable.EnableScheduling;
 import com.mvc.annotation.method.schedule.Scheduled;
+import com.mvc.core.mapping.PackageScanner;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.core.util.DateUtil;
@@ -34,12 +35,11 @@ public class ScheduledJobManager {
     private Set<Method> tasks;
 
     public void init(){
-        IocContainer container = IocContainer.getInstance();
         AtomicBoolean global = new AtomicBoolean(false);
-        Optional.ofNullable(container.getSpringBootApplication()).ifPresent(e ->
+        Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
                 global.set(e.isAnnotationPresent(EnableScheduling.class)));
 
-        List<Class<?>> classes = container.getClasses();
+        List<Class<?>> classes = IocContainer.getInstance().getClasses();
         if(!global.get()){
             classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableScheduling.class))
                     .collect(Collectors.toList());

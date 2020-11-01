@@ -1,5 +1,8 @@
 package com.mvc.servlet;
 
+import com.mvc.core.aspect.AspectHandler;
+import com.mvc.core.injection.DependencyInjectProcessor;
+import com.mvc.core.mapping.PackageScanner;
 import com.mvc.core.task.async.TaskExecutor;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.injection.ConfigurationProcessor;
@@ -7,6 +10,7 @@ import com.mvc.core.interceptor.InterceptorProcessor;
 import com.mvc.core.task.init.BeanInitializer;
 import com.mvc.core.mapping.HandlerMapping;
 import com.mvc.core.invocation.InvocationProcessor;
+import com.mvc.core.task.schedule.job.ScheduledJobManager;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.annotation.WebServlet;
@@ -30,12 +34,31 @@ public class DispatcherServlet extends HttpServlet {
         String configLocation = config.getInitParameter("contextConfigLocation");
         Properties properties = ConfigurationProcessor.getInstance().loadConfig(configLocation);
         String basePackage = properties.getProperty("component.scan.base.packages");
-
-        //2.包扫描，将所有被注解的类和方法统一注册到IOC容器
         if(Objects.isNull(basePackage)){
             basePackage = "";
         }
-        HandlerMapping.getInstance().scanAndInject(basePackage);
+        //2.包扫描
+        PackageScanner.getInstance().scan(basePackage);
+
+        //3.将所有被注解的类和方法统一注册到IOC容器
+        DependencyInjectProcessor injectProcessor = DependencyInjectProcessor.getInstance();
+        injectProcessor.inject();
+        //4.mvc建立url和方法的映射
+        HandlerMapping.getInstance().buildMapping();
+
+        //5.切面扫描
+        AspectHandler aspectHandler = AspectHandler.getInstance();
+        aspectHandler.aspectScan();
+        //6.为切面指向的类创建代理
+        aspectHandler.createProxy();
+        //7.将代理重新注入ioc容器
+        injectProcessor.reInject();
+
+        //8.bean初始化
+        BeanInitializer.getInstance().init();
+        //9.开启定时任务
+        ScheduledJobManager.getInstance().init();
+        HandlerMapping.getInstance().print();
     }
 
     @Override

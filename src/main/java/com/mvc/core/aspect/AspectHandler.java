@@ -7,6 +7,7 @@ import com.mvc.annotation.enable.EnableAspectJAutoProxy;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.core.interceptor.HandlerInterceptor;
 import com.mvc.core.interceptor.InterceptorProcessor;
+import com.mvc.core.mapping.PackageScanner;
 import com.mvc.entity.method.Signature;
 import com.mvc.core.injection.IocContainer;
 
@@ -34,7 +35,7 @@ public class AspectHandler {
 
     public void aspectScan() {
         AtomicBoolean global = new AtomicBoolean(false);
-        Optional.ofNullable(IocContainer.getInstance().getSpringBootApplication()).ifPresent(e ->
+        Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
                 global.set(e.isAnnotationPresent(EnableAspectJAutoProxy.class)));
 
         Optional.of(getClasses()).ifPresent(e ->

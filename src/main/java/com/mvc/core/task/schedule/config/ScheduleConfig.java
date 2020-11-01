@@ -1,6 +1,5 @@
 package com.mvc.core.task.schedule.config;
 
-import com.sun.istack.internal.NotNull;
 import org.quartz.JobDataMap;
 
 /**
@@ -8,7 +7,6 @@ import org.quartz.JobDataMap;
  */
 public class ScheduleConfig {
 
-    @NotNull
     private String cron;
 
     private String name;

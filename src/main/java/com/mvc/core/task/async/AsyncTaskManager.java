@@ -2,6 +2,7 @@ package com.mvc.core.task.async;
 
 import com.mvc.annotation.method.async.Async;
 import com.mvc.annotation.enable.EnableAsync;
+import com.mvc.core.mapping.PackageScanner;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.core.injection.IocContainer;
@@ -31,11 +32,9 @@ public class AsyncTaskManager {
     }
 
     public Set<Signature> scan(){
-        IocContainer container = IocContainer.getInstance();
-        List<Class<?>> classes = container.getClasses();
+        List<Class<?>> classes = IocContainer.getInstance().getClasses();
         AtomicBoolean global = new AtomicBoolean(false);
-
-        Optional.ofNullable(container.getSpringBootApplication()).ifPresent(e ->
+        Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
                 global.set(e.isAnnotationPresent(EnableAsync.class)));
         if(!global.get()){
             classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableAsync.class))
