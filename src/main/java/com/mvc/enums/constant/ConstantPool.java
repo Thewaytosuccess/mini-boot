@@ -21,8 +21,6 @@ public interface ConstantPool {
 
     String ANY = "*";
 
-    String PROPERTIES_FILE_SUFFIX = "properties";
-
     String EXECUTION_PREFIX = "execution(";
 
     String ANNOTATION_PREFIX = "@annotation(";

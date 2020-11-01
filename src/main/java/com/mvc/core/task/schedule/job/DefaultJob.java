@@ -20,6 +20,7 @@ public class DefaultJob implements Job {
     @Override
     public void execute(JobExecutionContext jobExecutionContext){
         try {
+            System.out.println("hello world");
             method.invoke(IocContainer.getInstance().getClassInstance(method.getDeclaringClass()));
         } catch (Exception e) {
             e.printStackTrace();

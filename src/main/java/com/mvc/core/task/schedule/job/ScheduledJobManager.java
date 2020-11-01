@@ -64,7 +64,7 @@ public class ScheduledJobManager {
         AtomicInteger count = new AtomicInteger();
         for (Method method:tasks){
             try {
-                buildScheduler(method,schedulerFactory,count).start();
+                buildScheduler(method, schedulerFactory, count).start();
                 //todo shutdown by config
             } catch (Exception e) {
                 e.printStackTrace();
@@ -132,7 +132,7 @@ public class ScheduledJobManager {
             scheduleName = "DEFAULT_SCHEDULE_" + index;
         }
 
-        Scheduler scheduler = schedulerFactory.getScheduler(scheduleName);
+        Scheduler scheduler = schedulerFactory.getScheduler();
         String delay = config.getDelay();
         if(Objects.nonNull(delay) && !delay.isEmpty()){
             scheduler.startDelayed(Integer.parseInt(delay));
@@ -179,7 +179,6 @@ public class ScheduledJobManager {
     }
 
     private JobDetail buildJob(ScheduleConfig config,int index,Method method){
-        DefaultJob job = new DefaultJob(method);
         String jobName = config.getJobName();
         if(Objects.isNull(jobName) || jobName.isEmpty()){
             jobName = "JOB_" + index;
@@ -190,7 +189,8 @@ public class ScheduledJobManager {
             jobGroup = "JOB_GROUP_" + index;
         }
 
-        JobBuilder jobBuilder = JobBuilder.newJob(job.getClass()).withIdentity(jobName, jobGroup);
+        DefaultJob job = new DefaultJob(method);
+        JobBuilder jobBuilder = JobBuilder.newJob(DefaultJob.class).withIdentity(jobName, jobGroup);
         JobDataMap jobData = config.getJobDataMap();
         if(Objects.nonNull(jobData) && !jobData.isEmpty()){
             jobBuilder.setJobData(jobData);
