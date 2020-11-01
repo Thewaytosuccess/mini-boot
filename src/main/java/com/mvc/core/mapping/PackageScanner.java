@@ -128,10 +128,12 @@ public class PackageScanner {
                     if(f.isDirectory()){
                         packageScan(dirOrFile);
                     }else{
-                        if(Objects.isNull(paths)){
-                            paths = new HashSet<>();
+                        if(dirOrFile.endsWith(".class")){
+                            if(Objects.isNull(paths)){
+                                paths = new HashSet<>();
+                            }
+                            paths.add(dirOrFile.replace(".class",""));
                         }
-                        paths.add(dirOrFile.replace(".class",""));
                     }
                 }
             }
@@ -144,8 +146,7 @@ public class PackageScanner {
      */
     private void removeDots(){
         Set<String> list = new HashSet<>();
-        paths.stream().filter(e -> e.startsWith(PATH_SEPARATOR) && !e.endsWith(PROPERTIES_FILE_SUFFIX))
-                .forEach(e -> list.add(e.substring(1)));
+        paths.stream().filter(e -> e.startsWith(PATH_SEPARATOR)).forEach(e -> list.add(e.substring(1)));
         if(!list.isEmpty()){
             paths = list;
         }
