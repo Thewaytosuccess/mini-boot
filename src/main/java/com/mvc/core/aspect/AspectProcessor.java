@@ -85,13 +85,9 @@ public class AspectProcessor {
     }
 
     public void createProxy(List<Signature> methods) {
-        if(Objects.nonNull(methods)){
+        if(Objects.nonNull(methods) && !methods.isEmpty()){
             methods.forEach(this::buildClassMethodMap);
         }
-        createProxy();
-    }
-
-    public void createProxy(){
         //统一异常处理
         ControllerAdviceHandler.getInstance().handle().forEach(this::buildClassMethodMap);
         //异步任务扫描

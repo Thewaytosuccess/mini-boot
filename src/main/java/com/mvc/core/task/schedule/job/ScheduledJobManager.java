@@ -3,6 +3,7 @@ package com.mvc.core.task.schedule.job;
 import com.mvc.annotation.enable.EnableScheduling;
 import com.mvc.annotation.method.schedule.Scheduled;
 import com.mvc.core.mapping.PackageScanner;
+import com.mvc.core.task.async.TaskExecutor;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 import com.mvc.core.util.DateUtil;
@@ -15,8 +16,11 @@ import com.mvc.core.task.schedule.config.ScheduleConfigAdapter;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -34,6 +38,9 @@ public class ScheduledJobManager {
 
     private Set<Method> tasks;
 
+    private Set<Scheduler> schedulers;
+
+    @PostConstruct
     public void init(){
         AtomicBoolean global = new AtomicBoolean(false);
         Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
@@ -55,6 +62,24 @@ public class ScheduledJobManager {
         }
     }
 
+    @PreDestroy
+    public void destroy(){
+        ThreadPoolExecutor executor = TaskExecutor.getInstance().getExecutor();
+        if(Objects.nonNull(schedulers)){
+            for(Scheduler e:schedulers){
+                executor.submit(() -> {
+                    try {
+                        if(e.isStarted() && !e.isShutdown()){
+                            e.shutdown();
+                        }
+                    } catch (SchedulerException ex) {
+                        throw new ExceptionWrapper(ex);
+                    }
+                });
+            }
+        }
+    }
+
     /**
      * todo 使用xxl-job/elastic-job执行定时任务
      */
@@ -62,9 +87,12 @@ public class ScheduledJobManager {
         StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
         //用于编号
         AtomicInteger count = new AtomicInteger();
+        schedulers = new HashSet<>();
         for (Method method:tasks){
             try {
-                buildScheduler(method, schedulerFactory, count).start();
+                Scheduler scheduler = buildScheduler(method, schedulerFactory, count);
+                scheduler.start();
+                schedulers.add(scheduler);
                 //todo shutdown by config
             } catch (Exception e) {
                 e.printStackTrace();

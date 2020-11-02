@@ -66,9 +66,12 @@ public class AspectHandler {
                 }
             })
         );
+
+        //为切面指向的类创建代理
+        createProxy();
     }
 
-    public void createProxy() {
+    private void createProxy() {
         AspectProcessor aspectProcessor = AspectProcessor.getInstance();
         if(aspectProcessor.rescan()){
             //为携带切面注解的方法生成代理
@@ -80,7 +83,7 @@ public class AspectHandler {
                 aspectProcessor.createProxy(methods);
             }
         }else{
-            aspectProcessor.createProxy();
+            aspectProcessor.createProxy(null);
         }
     }
 

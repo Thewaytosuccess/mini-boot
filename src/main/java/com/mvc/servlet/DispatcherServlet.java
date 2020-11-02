@@ -46,17 +46,14 @@ public class DispatcherServlet extends HttpServlet {
         //4.mvc建立url和方法的映射
         HandlerMapping.getInstance().buildMapping();
 
-        //5.切面扫描
-        AspectHandler aspectHandler = AspectHandler.getInstance();
-        aspectHandler.aspectScan();
-        //6.为切面指向的类创建代理
-        aspectHandler.createProxy();
-        //7.将代理重新注入ioc容器
+        //5.切面扫描,并为切面指向的类创建代理
+        AspectHandler.getInstance().aspectScan();
+        //6.将代理重新注入ioc容器
         injectProcessor.reInject();
 
-        //8.bean初始化
+        //7.bean初始化
         BeanInitializer.getInstance().init();
-        //9.开启定时任务
+        //8.开启定时任务
         ScheduledJobManager.getInstance().init();
         HandlerMapping.getInstance().print();
     }
@@ -108,7 +105,11 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     public void destroy() {
+        //bean的销毁
         BeanInitializer.getInstance().destroy();
+        //关闭定时任务
+        ScheduledJobManager.getInstance().destroy();
+        //关闭线程池
         TaskExecutor.getInstance().shutdown();
         super.destroy();
     }
