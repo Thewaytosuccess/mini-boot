@@ -109,7 +109,7 @@ public class DispatcherServlet extends HttpServlet {
         BeanInitializer.getInstance().destroy();
         //关闭定时任务
         ScheduledJobManager.getInstance().destroy();
-        //关闭线程池
+        //最后关闭线程池
         TaskExecutor.getInstance().shutdown();
         super.destroy();
     }

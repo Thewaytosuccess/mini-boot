@@ -1,5 +1,6 @@
 package com.mvc.core.task.schedule.job;
 
+import com.alibaba.fastjson.JSON;
 import com.mvc.annotation.enable.EnableScheduling;
 import com.mvc.annotation.method.schedule.Scheduled;
 import com.mvc.core.mapping.PackageScanner;
@@ -90,7 +91,8 @@ public class ScheduledJobManager {
         schedulers = new HashSet<>();
         for (Method method:tasks){
             try {
-                Scheduler scheduler = buildScheduler(method, schedulerFactory, count);
+                Scheduler scheduler = schedulerFactory.getScheduler();
+                buildScheduler(method, scheduler, count);
                 scheduler.start();
                 schedulers.add(scheduler);
                 //todo shutdown by config
@@ -136,6 +138,7 @@ public class ScheduledJobManager {
         if(Objects.isNull(cron) || cron.isEmpty()){
             throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
         }
+        System.out.println("[schedule config] = "+JSON.toJSONString(config));
         return config;
     }
 
@@ -151,22 +154,21 @@ public class ScheduledJobManager {
         return key;
     }
 
-    private Scheduler buildScheduler(Method method,StdSchedulerFactory schedulerFactory, AtomicInteger count)
-            throws Exception{
+    private void buildScheduler(Method method,Scheduler scheduler, AtomicInteger count) throws Exception{
         int index = count.incrementAndGet();
         ScheduleConfig config = getScheduleConfig(method);
-        String scheduleName = config.getName();
-        if(Objects.isNull(scheduleName) || scheduleName.isEmpty()){
-            scheduleName = "DEFAULT_SCHEDULE_" + index;
-        }
-
-        Scheduler scheduler = schedulerFactory.getScheduler();
         String delay = config.getDelay();
         if(Objects.nonNull(delay) && !delay.isEmpty()){
             scheduler.startDelayed(Integer.parseInt(delay));
         }
-        scheduler.scheduleJob(buildJob(config,index,method),buildTrigger(config,index));
-        return scheduler;
+
+        JobDataMap jobDataMap = config.getJobDataMap();
+        if(Objects.isNull(jobDataMap)){
+            jobDataMap = new JobDataMap();
+        }
+        jobDataMap.put("method",method);
+        config.setJobDataMap(jobDataMap);
+        scheduler.scheduleJob(buildJob(config,index),buildTrigger(config,index));
     }
 
     private Trigger buildTrigger(ScheduleConfig config,int index){
@@ -206,7 +208,7 @@ public class ScheduledJobManager {
         return triggerBuilder.withSchedule(CronScheduleBuilder.cronSchedule(config.getCron())).build();
     }
 
-    private JobDetail buildJob(ScheduleConfig config,int index,Method method){
+    private JobDetail buildJob(ScheduleConfig config,int index){
         String jobName = config.getJobName();
         if(Objects.isNull(jobName) || jobName.isEmpty()){
             jobName = "JOB_" + index;
@@ -217,7 +219,6 @@ public class ScheduledJobManager {
             jobGroup = "JOB_GROUP_" + index;
         }
 
-        DefaultJob job = new DefaultJob(method);
         JobBuilder jobBuilder = JobBuilder.newJob(DefaultJob.class).withIdentity(jobName, jobGroup);
         JobDataMap jobData = config.getJobDataMap();
         if(Objects.nonNull(jobData) && !jobData.isEmpty()){

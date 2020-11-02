@@ -15,7 +15,7 @@ import com.mvc.annotation.type.component.ComponentScan;
 //@EnableAspectJAutoProxy
 public class ApplicationStarter {
 
-    @Scheduled(cron = "*/3 * * ? * * 2020")
+    @Scheduled(prefix = "quartz.job")
     public void testScheduled(){
         System.out.println("【scheduled task is running】");
     }

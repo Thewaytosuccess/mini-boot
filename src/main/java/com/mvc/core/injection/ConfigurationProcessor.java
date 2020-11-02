@@ -241,6 +241,7 @@ public class ConfigurationProcessor {
         String[] splits;
         StringBuilder builder;
 
+        configMap = new HashMap<>(16);
         for (Map.Entry<Object, Object> entry : properties.entrySet()) {
             k = String.valueOf(entry.getKey());
             v = entry.getValue();
@@ -254,7 +255,6 @@ public class ConfigurationProcessor {
                     }
                     key = builder.toString();
                 }
-                configMap = getConfigMap(configMap);
                 configMap.put(key,v);
             }
         }
