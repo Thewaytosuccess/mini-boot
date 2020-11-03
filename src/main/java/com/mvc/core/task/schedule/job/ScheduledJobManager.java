@@ -83,8 +83,9 @@ public class ScheduledJobManager {
 
     public boolean deleteJob(int jobId){
         try {
-            return Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId)) &&
-                    scheduler.deleteJob(jobKeyMap.get(jobId));
+            JobKey jobKey = jobKeyMap.get(jobId);
+            return Objects.nonNull(jobKey) && scheduler.checkExists(jobKey) &&
+                    scheduler.deleteJob(jobKey);
         } catch (SchedulerException e) {
             e.printStackTrace();
             return false;
@@ -108,8 +109,9 @@ public class ScheduledJobManager {
 
     public void pauseJob(int jobId){
         try {
-            if(Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId))){
-                scheduler.pauseJob(jobKeyMap.get(jobId));
+            JobKey jobKey = jobKeyMap.get(jobId);
+            if(Objects.nonNull(jobKey) && scheduler.checkExists(jobKey)){
+                scheduler.pauseJob(jobKey);
             }
         } catch (SchedulerException e) {
             e.printStackTrace();
@@ -118,8 +120,9 @@ public class ScheduledJobManager {
 
     public void resumeJob(int jobId){
         try {
-            if(Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId))){
-                scheduler.resumeJob(jobKeyMap.get(jobId));
+            JobKey jobKey = jobKeyMap.get(jobId);
+            if(Objects.nonNull(jobKey) && scheduler.checkExists(jobKey)){
+                scheduler.resumeJob(jobKey);
             }
         } catch (SchedulerException e) {
             e.printStackTrace();
@@ -128,8 +131,9 @@ public class ScheduledJobManager {
 
     public void startJob(int jobId){
         try {
-            if(Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId))){
-                scheduler.triggerJob(jobKeyMap.get(jobId));
+            JobKey jobKey = jobKeyMap.get(jobId);
+            if(Objects.nonNull(jobKey) && scheduler.checkExists(jobKey)){
+                scheduler.triggerJob(jobKey);
             }
         } catch (SchedulerException e) {
             e.printStackTrace();
