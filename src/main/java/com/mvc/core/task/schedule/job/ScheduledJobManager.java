@@ -23,7 +23,6 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -37,9 +36,13 @@ public class ScheduledJobManager {
 
     public static ScheduledJobManager getInstance(){ return MANAGER; }
 
-    private Set<Method> tasks;
+    private List<Method> tasks;
 
-    private Set<Scheduler> schedulers;
+    Scheduler scheduler;
+
+    private Map<Integer,JobKey> jobKeyMap;
+
+    private Map<Integer,TriggerKey> triggerKeyMap;
 
     @PostConstruct
     public void init(){
@@ -49,57 +52,120 @@ public class ScheduledJobManager {
 
         List<Class<?>> classes = IocContainer.getInstance().getClasses();
         if(!global.get()){
-            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableScheduling.class))
-                    .collect(Collectors.toList());
+            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableScheduling.class)).collect(Collectors.toList());
         }
 
         if(!classes.isEmpty()){
-            tasks = new HashSet<>();
+            tasks = new ArrayList<>();
         }
         classes.forEach(e -> tasks.addAll(Arrays.stream(e.getDeclaredMethods()).filter(m ->
                 m.isAnnotationPresent(Scheduled.class)).collect(Collectors.toSet())));
         if(Objects.nonNull(tasks) && !tasks.isEmpty()){
-            start();
+            initJob();
         }
     }
 
     @PreDestroy
     public void destroy(){
         ThreadPoolExecutor executor = TaskExecutor.getInstance().getExecutor();
-        if(Objects.nonNull(schedulers)){
-            for(Scheduler e:schedulers){
-                executor.submit(() -> {
-                    try {
-                        if(e.isStarted() && !e.isShutdown()){
-                            e.shutdown();
-                        }
-                    } catch (SchedulerException ex) {
-                        throw new ExceptionWrapper(ex);
+        if(Objects.nonNull(scheduler)){
+            executor.submit(() -> {
+                try {
+                    if(scheduler.isStarted() && !scheduler.isShutdown()){
+                        scheduler.shutdown();
                     }
-                });
+                } catch (SchedulerException ex) {
+                    throw new ExceptionWrapper(ex);
+                }
+            });
+        }
+    }
+
+    public boolean deleteJob(int jobId){
+        try {
+            return Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId)) &&
+                    scheduler.deleteJob(jobKeyMap.get(jobId));
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deleteJobs(List<Integer> jobIds){
+        List<JobKey> keys = new ArrayList<>();
+        jobKeyMap.forEach((k,v) -> {
+            if(jobIds.contains(k)){
+                keys.add(v);
             }
+        });
+        try {
+            return scheduler.deleteJobs(keys);
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void pauseJob(int jobId){
+        try {
+            if(Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId))){
+                scheduler.pauseJob(jobKeyMap.get(jobId));
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void resumeJob(int jobId){
+        try {
+            if(Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId))){
+                scheduler.resumeJob(jobKeyMap.get(jobId));
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void startJob(int jobId){
+        try {
+            if(Objects.nonNull(jobKeyMap.get(jobId)) && scheduler.checkExists(jobKeyMap.get(jobId))){
+                scheduler.triggerJob(jobKeyMap.get(jobId));
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void rescheduleJob(int jobId,String cron){
+        if(Objects.isNull(cron) || cron.isEmpty()){
+            return;
+        }
+
+        try {
+            TriggerKey triggerKey = triggerKeyMap.get(jobId);
+            if(Objects.nonNull(triggerKey) && scheduler.checkExists(jobKeyMap.get(jobId))){
+                Trigger trigger = TriggerBuilder.newTrigger().withSchedule(CronScheduleBuilder
+                        .cronSchedule(cron)).withIdentity(triggerKey.getName(),triggerKey.getGroup()).build();
+                scheduler.rescheduleJob(triggerKey,trigger);
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
         }
     }
 
     /**
      * todo 使用xxl-job/elastic-job执行定时任务
      */
-    private void start(){
-        StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
-        //用于编号
-        AtomicInteger count = new AtomicInteger();
-        schedulers = new HashSet<>();
-        for (Method method:tasks){
-            try {
-                Scheduler scheduler = schedulerFactory.getScheduler();
-                buildScheduler(method, scheduler, count);
+    private void initJob(){
+        try {
+            scheduler = new StdSchedulerFactory().getScheduler();
+            //用于编号
+            for (int i = 0,size = tasks.size(); i < size; ++i) {
+                buildScheduler(tasks.get(i), scheduler, i);
                 scheduler.start();
-                schedulers.add(scheduler);
-                //todo shutdown by config
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new ExceptionWrapper(e);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -154,8 +220,7 @@ public class ScheduledJobManager {
         return key;
     }
 
-    private void buildScheduler(Method method,Scheduler scheduler, AtomicInteger count) throws Exception{
-        int index = count.incrementAndGet();
+    private void buildScheduler(Method method,Scheduler scheduler, int index) throws Exception{
         ScheduleConfig config = getScheduleConfig(method);
         String delay = config.getDelay();
         if(Objects.nonNull(delay) && !delay.isEmpty()){
@@ -180,6 +245,11 @@ public class ScheduledJobManager {
         if(Objects.isNull(triggerGroup) || triggerGroup.isEmpty()){
             triggerGroup = "TRIGGER_GROUP_" + index;
         }
+
+        if(Objects.isNull(triggerKeyMap)){
+            triggerKeyMap = new HashMap<>();
+        }
+        triggerKeyMap.put(index,TriggerKey.triggerKey(triggerName,triggerGroup));
         TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger().withIdentity(triggerName,triggerGroup);
 
         String startAt = config.getStartAt();
@@ -219,6 +289,12 @@ public class ScheduledJobManager {
             jobGroup = "JOB_GROUP_" + index;
         }
 
+        if(Objects.isNull(jobKeyMap)){
+            jobKeyMap = new HashMap<>();
+        }
+        jobKeyMap.put(index,JobKey.jobKey(jobName,jobGroup));
+
+        System.out.println("jobName = "+jobName + ";jobGroup = "+jobGroup);
         JobBuilder jobBuilder = JobBuilder.newJob(DefaultJob.class).withIdentity(jobName, jobGroup);
         JobDataMap jobData = config.getJobDataMap();
         if(Objects.nonNull(jobData) && !jobData.isEmpty()){

@@ -10,7 +10,8 @@ import com.mvc.annotation.method.http.RequestMapping;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.type.controller.RestController;
-import com.mvc.entity.test.User;
+import com.mvc.core.task.schedule.job.ScheduledJobManager;
+import com.mvc.entity.test.ScheduleParam;
 import com.mvc.service.UserService;
 
 /**
@@ -27,14 +28,15 @@ public class UserController {
     @Qualifier(name = "userServiceImpl")
     private UserService userService;
 
-    @GetMapping("/get")
-    public Object getUser(){
-        return "get:username="+username;
+    @GetMapping("/job/close/{jobId}")
+    public Object closeJob(@PathVariable("jobId") Integer jobId){
+        return ScheduledJobManager.getInstance().deleteJob(jobId);
     }
 
-    @PostMapping("/login")
-    public Object login(@RequestBody User user){
-        return "post:"+user;
+    @PostMapping("/reschedule")
+    public Object reschedule(@RequestBody ScheduleParam param){
+        ScheduledJobManager.getInstance().rescheduleJob(param.getJobId(),param.getCron());
+        return null;
     }
 
     @DeleteMapping("/delete/{userId}/user")
@@ -43,7 +45,7 @@ public class UserController {
     }
 
     @RequestMapping("/logout")
-    public Object logout(){
+    public Object reschedule(){
         return userService.getDataSourceConfig();
     }
 }

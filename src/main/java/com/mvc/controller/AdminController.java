@@ -10,7 +10,7 @@ import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.type.controller.RestController;
 import com.mvc.core.exception.ExceptionWrapper;
-import com.mvc.entity.test.User;
+import com.mvc.entity.test.ScheduleParam;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.service.UserService;
 
@@ -33,7 +33,7 @@ public class AdminController {
     }
 
     @PostMapping("/login")
-    public Object login(@RequestBody User user){
+    public Object login(@RequestBody ScheduleParam user){
         return "post:"+user;
     }
 
