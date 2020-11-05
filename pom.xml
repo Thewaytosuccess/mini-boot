@@ -21,6 +21,7 @@
         <javassist.verion>3.27.0-GA</javassist.verion>
         <cglib.version>3.1</cglib.version>
         <quartz.version>2.3.0</quartz.version>
+        <mysql.version>8.0.16</mysql.version>
     </properties>
 
     <dependencies>
@@ -44,6 +45,13 @@
             <groupId>org.quartz-scheduler</groupId>
             <artifactId>quartz</artifactId>
             <version>${quartz.version}</version>
+        </dependency>
+
+        <!-- mysql -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql.version}</version>
         </dependency>
 
         <!-- 动态生成字节码 -->

@@ -21,9 +21,6 @@ import com.mvc.service.UserService;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    @Value("${spring.dataSource.user-name}")
-    private String username;
-
     @Resource(name="anotherUserServiceImpl")
     private UserService userService;
 

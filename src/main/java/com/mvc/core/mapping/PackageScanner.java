@@ -32,6 +32,8 @@ public class PackageScanner {
 
     private Set<String> paths;
 
+    private Set<Class<?>> allClasses;
+
     private Class<?> starterClass;
 
     public void scan(String basePackage){
@@ -49,6 +51,13 @@ public class PackageScanner {
         return starterClass;
     }
 
+    public Set<Class<?>> getAllClasses(){
+        if(Objects.isNull(allClasses)){
+            allClasses = new HashSet<>();
+        }
+        return allClasses;
+    }
+
     /**
      * 解析包含注解的类并按照优先级排序,同时过滤掉不含注解的类
      * 注解优先级：@Configuration > @Component > @Service > @Controller/@RestController
@@ -63,9 +72,11 @@ public class PackageScanner {
         List<Class<?>> controllerAdvice = new ArrayList<>();
         List<Class<?>> application = new ArrayList<>();
 
+        Set<Class<?>> allClasses = getAllClasses();
         paths.forEach(e -> {
             try {
                 Class<?> clazz = Class.forName(e);
+                allClasses.add(clazz);
                 if(clazz.isAnnotationPresent(Configuration.class)){
                     configurationClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(Component.class)){

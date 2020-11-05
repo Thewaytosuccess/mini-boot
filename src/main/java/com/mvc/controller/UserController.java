@@ -2,7 +2,6 @@ package com.mvc.controller;
 
 import com.mvc.annotation.bean.ioc.Autowired;
 import com.mvc.annotation.bean.ioc.Qualifier;
-import com.mvc.annotation.config.Value;
 import com.mvc.annotation.method.http.DeleteMapping;
 import com.mvc.annotation.method.http.GetMapping;
 import com.mvc.annotation.method.http.PostMapping;
@@ -20,9 +19,6 @@ import com.mvc.service.UserService;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-
-    @Value("${spring.dataSource.user-name}")
-    private String username;
 
     @Autowired
     @Qualifier(name = "userServiceImpl")
