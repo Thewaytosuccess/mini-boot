@@ -73,10 +73,17 @@ public class PackageScanner {
         List<Class<?>> application = new ArrayList<>();
 
         Set<Class<?>> allClasses = getAllClasses();
+        boolean empty = true;
+        if(!allClasses.isEmpty()){
+            empty = false;
+        }
+        boolean finalEmpty = empty;
         paths.forEach(e -> {
             try {
                 Class<?> clazz = Class.forName(e);
-                allClasses.add(clazz);
+                if(finalEmpty){
+                    allClasses.add(clazz);
+                }
                 if(clazz.isAnnotationPresent(Configuration.class)){
                     configurationClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(Component.class)){
@@ -166,9 +173,11 @@ public class PackageScanner {
     private void packageRescan(){
         //find SpringBootApplication
         List<Class<?>> application = new ArrayList<>();
+        Set<Class<?>> allClasses = getAllClasses();
         for(String path:paths){
             try {
                 starterClass = Class.forName(path);
+                allClasses.add(starterClass);
                 if(starterClass.isAnnotationPresent(SpringBootApplication.class)){
                     application.add(starterClass);
                 }

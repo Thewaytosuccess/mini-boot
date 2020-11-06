@@ -9,8 +9,10 @@ import java.lang.annotation.*;
 @Target(ElementType.FIELD)
 @Inherited
 @Documented
-public @interface Id {
+public @interface PrimaryKey {
 
-    boolean autoIncrement() default true;
+    Class<?> type() default String.class;
+
+    Class<?> idGenerator() default Void.class;
 
 }

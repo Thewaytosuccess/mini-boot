@@ -2,46 +2,64 @@ package com.mvc.core.datasource;
 
 import com.mvc.core.exception.ExceptionWrapper;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author xhzy
  */
-public class JdbcUtil {
+public class JdbcUtil<T> {
 
-    Connection connection;
+    private Connection connection;
 
-    public JdbcUtil(){
-        connection = ConnectionManager.getInstance().getConnection();
+    private Connection getConnection(){
+        if(Objects.isNull(connection)){
+            connection = ConnectionManager.getInstance().getConnection();
+        }
+        return connection;
     }
 
-    public boolean save(String sql){
+    public boolean update(String sql){
         try {
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setBoolean(1,true);
-            return ps.executeUpdate() > 0;
+            return getConnection().prepareStatement(sql).executeUpdate() > 0;
         } catch (SQLException e) {
             throw new ExceptionWrapper(e);
         }
     }
 
-    public List<Object> get(String sql){
-        List<Object> result = new ArrayList<>();
+    public List<T> query(Class<T> clazz, String sql){
+        List<T> result = new ArrayList<>();
         try {
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setBoolean(1,true);
-            ResultSet resultSet = ps.executeQuery();
+            List<Field> fields = DataSourceManager.getInstance().getTableMap().get(clazz);
+            ResultSet resultSet = getConnection().prepareStatement(sql).executeQuery();
             while(resultSet.next()){
-                resultSet.getObject("columnLabel",Object.class);
+                T t = clazz.newInstance();
+                fields.forEach(e -> {
+                    try {
+                        clazz.getDeclaredMethod(setter(e.getName()),e.getType()).invoke(t,
+                                resultSet.getObject(e.getName(), e.getType()));
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                });
+                result.add(t);
             }
             return result;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new ExceptionWrapper(e);
         }
+    }
+
+    private String setter(String name) {
+        String setter = "set"+name.substring(0,1).toUpperCase();
+        if(name.length() > 1){
+            setter += name.substring(1);
+        }
+        return setter;
     }
 }
