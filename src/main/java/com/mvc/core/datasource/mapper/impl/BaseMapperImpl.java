@@ -1,7 +1,7 @@
 package com.mvc.core.datasource.mapper.impl;
 
-import com.mvc.core.datasource.JdbcUtil;
-import com.mvc.core.datasource.SqlGenerator;
+import com.mvc.core.datasource.db.JdbcUtil;
+import com.mvc.core.datasource.db.SqlGenerator;
 import com.mvc.core.datasource.mapper.BaseMapper;
 import com.mvc.enums.SqlTypeEnum;
 

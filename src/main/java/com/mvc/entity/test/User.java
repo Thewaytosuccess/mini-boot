@@ -7,17 +7,17 @@ import com.mvc.annotation.jpa.Table;
 /**
  * @author xhzy
  */
-@Table
+@Table(create = true)
 public class User {
 
     @Id
-    @Column
+    @Column(length = 20)
     private Long userId;
 
-    @Column(column = "user_name")
+    @Column(column = "user_name",length = 20)
     private String userName;
 
-    @Column
+    @Column(length = 20)
     private String password;
 
     public Long getUserId() {

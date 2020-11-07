@@ -10,5 +10,10 @@ import java.lang.annotation.*;
 @Inherited
 @Documented
 public @interface Table {
+
    String table() default "";
+
+   boolean create() default false;
+
+   String comment() default "";
 }

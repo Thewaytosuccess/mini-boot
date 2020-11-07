@@ -1,8 +1,8 @@
 package com.mvc.servlet;
 
 import com.mvc.core.aspect.AspectHandler;
-import com.mvc.core.datasource.ConnectionManager;
-import com.mvc.core.datasource.DataSourceManager;
+import com.mvc.core.datasource.connection.ConnectionManager;
+import com.mvc.core.datasource.db.DataSourceManager;
 import com.mvc.core.injection.DependencyInjectProcessor;
 import com.mvc.core.mapping.PackageScanner;
 import com.mvc.core.task.async.TaskExecutor;

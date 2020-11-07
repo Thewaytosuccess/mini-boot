@@ -1,4 +1,4 @@
-package com.mvc.core.datasource;
+package com.mvc.core.datasource.db;
 
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.enums.SqlTypeEnum;

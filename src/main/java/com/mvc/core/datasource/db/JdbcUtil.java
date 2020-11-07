@@ -1,5 +1,7 @@
-package com.mvc.core.datasource;
+package com.mvc.core.datasource.db;
 
+import com.mvc.core.datasource.connection.ConnectionManager;
+import com.mvc.core.datasource.db.DataSourceManager;
 import com.mvc.core.exception.ExceptionWrapper;
 
 import java.lang.reflect.Field;
@@ -27,6 +29,14 @@ public class JdbcUtil<T> {
     public boolean update(String sql){
         try {
             return getConnection().prepareStatement(sql).executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new ExceptionWrapper(e);
+        }
+    }
+
+    public boolean exist(String sql){
+        try {
+            return getConnection().prepareStatement(sql).executeQuery().next();
         } catch (SQLException e) {
             throw new ExceptionWrapper(e);
         }

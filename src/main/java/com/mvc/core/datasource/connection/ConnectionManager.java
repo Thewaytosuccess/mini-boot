@@ -1,4 +1,4 @@
-package com.mvc.core.datasource;
+package com.mvc.core.datasource.connection;
 
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.injection.ConfigurationProcessor;
