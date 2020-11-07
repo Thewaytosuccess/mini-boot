@@ -1,17 +1,11 @@
 package com.mvc.controller;
 
 import com.mvc.annotation.bean.ioc.Resource;
-import com.mvc.annotation.config.Value;
-import com.mvc.annotation.method.http.DeleteMapping;
-import com.mvc.annotation.method.http.GetMapping;
-import com.mvc.annotation.method.http.PostMapping;
-import com.mvc.annotation.method.http.RequestMapping;
+import com.mvc.annotation.method.http.*;
 import com.mvc.annotation.param.PathVariable;
 import com.mvc.annotation.param.RequestBody;
 import com.mvc.annotation.type.controller.RestController;
-import com.mvc.core.exception.ExceptionWrapper;
-import com.mvc.entity.test.ScheduleParam;
-import com.mvc.enums.ExceptionEnum;
+import com.mvc.entity.test.User;
 import com.mvc.service.UserService;
 
 /**
@@ -24,23 +18,27 @@ public class AdminController {
     @Resource(name="anotherUserServiceImpl")
     private UserService userService;
 
-    @GetMapping("/get")
-    public Object getUser(){
-        throw new ExceptionWrapper(ExceptionEnum.ILLEGAL_ARGUMENT);
+    @GetMapping("/get/{userId}")
+    public Object getUser(@PathVariable Long userId){
+        User user = new User();
+        user.setUserId(userId);
+        return userService.get(user);
     }
 
-    @PostMapping("/login")
-    public Object login(@RequestBody ScheduleParam user){
-        return "post:"+user;
+    @PostMapping("/update")
+    public Object update(@RequestBody User user){
+        return userService.update(user);
     }
 
-    @DeleteMapping("/delete/{userId}/user")
+    @DeleteMapping("/delete/{userId}")
     public Object delete(@PathVariable Long userId){
-        return "delete:userId="+userId;
+        User user = new User();
+        user.setUserId(userId);
+        return userService.delete(user);
     }
 
-    @RequestMapping("/logout")
-    public Object logout(){
-        return userService.getDataSourceConfig();
+    @PutMapping("/save")
+    public Object save(@RequestBody User user){
+        return userService.save(user);
     }
 }

@@ -1,6 +1,8 @@
 package com.mvc.servlet;
 
 import com.mvc.core.aspect.AspectHandler;
+import com.mvc.core.datasource.ConnectionManager;
+import com.mvc.core.datasource.DataSourceManager;
 import com.mvc.core.injection.DependencyInjectProcessor;
 import com.mvc.core.mapping.PackageScanner;
 import com.mvc.core.task.async.TaskExecutor;
@@ -55,6 +57,8 @@ public class DispatcherServlet extends HttpServlet {
         BeanInitializer.getInstance().init();
         //8.开启定时任务
         ScheduledJobManager.getInstance().init();
+        //9.建立数据库连接
+        DataSourceManager.getInstance().init();
         HandlerMapping.getInstance().print();
     }
 
@@ -109,6 +113,7 @@ public class DispatcherServlet extends HttpServlet {
         BeanInitializer.getInstance().destroy();
         //关闭定时任务
         ScheduledJobManager.getInstance().destroy();
+        ConnectionManager.getInstance().destroy();
         //最后关闭线程池
         TaskExecutor.getInstance().shutdown();
         super.destroy();

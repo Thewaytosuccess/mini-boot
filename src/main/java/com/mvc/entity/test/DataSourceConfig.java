@@ -2,12 +2,10 @@ package com.mvc.entity.test;
 
 import com.mvc.annotation.config.Configuration;
 import com.mvc.annotation.config.ConfigurationProperties;
-import com.mvc.annotation.type.component.ComponentScan;
 
 /**
  * @author xhzy
  */
-@ComponentScan(basePackages = "com.mvc")
 @Configuration
 @ConfigurationProperties(prefix = "spring.dataSource")
 public class DataSourceConfig {

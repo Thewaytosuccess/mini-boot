@@ -22,10 +22,10 @@ public class ConnectionManager {
 
     public static ConnectionManager getInstance(){ return MANAGER; }
 
-    Connection connection;
+    private Connection connection;
 
     @PostConstruct
-    private void init(){
+    public void init(){
         Map<String, Object> configs = ConfigurationProcessor.getInstance().getByPrefix("spring.dataSource");
         Object driver = configs.get("driver");
         if(Objects.nonNull(driver)){
@@ -43,6 +43,7 @@ public class ConnectionManager {
             try {
                 this.connection = DriverManager.getConnection(String.valueOf(url), String.valueOf(username),
                         String.valueOf(password));
+                System.out.println("==== connect mysql success =====");
             } catch (SQLException e) {
                 throw new ExceptionWrapper(e);
             }
@@ -58,7 +59,7 @@ public class ConnectionManager {
     }
 
     @PreDestroy
-    private void destroy(){
+    public void destroy(){
         if(Objects.nonNull(connection)){
             try {
                 connection.close();

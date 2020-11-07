@@ -8,6 +8,7 @@ import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.component.ComponentScan;
 import com.mvc.annotation.type.controller.Controller;
 import com.mvc.annotation.type.controller.RestController;
+import com.mvc.annotation.type.repository.Repository;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.injection.IocContainer;
@@ -71,6 +72,7 @@ public class PackageScanner {
         List<Class<?>> interceptorClasses = new ArrayList<>();
         List<Class<?>> controllerAdvice = new ArrayList<>();
         List<Class<?>> application = new ArrayList<>();
+        List<Class<?>> repositories = new ArrayList<>();
 
         Set<Class<?>> allClasses = getAllClasses();
         boolean empty = true;
@@ -100,6 +102,8 @@ public class PackageScanner {
                     interceptorClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(SpringBootApplication.class)){
                     application.add(clazz);
+                }else if(clazz.isAnnotationPresent(Repository.class)){
+                    repositories.add(clazz);
                 }
             } catch (ClassNotFoundException ex) {
                 throw new ExceptionWrapper(ex);
@@ -119,6 +123,7 @@ public class PackageScanner {
 
         List<Class<?>> classes = IocContainer.getInstance().getClasses();
         classes.addAll(configurationClasses);
+        classes.addAll(repositories);
         classes.addAll(componentClasses);
         classes.addAll(serviceClasses);
         classes.addAll(restControllerClasses);

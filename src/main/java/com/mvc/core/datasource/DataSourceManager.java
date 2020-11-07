@@ -34,18 +34,21 @@ public class DataSourceManager {
         return tableMap;
     }
 
-    public void tableScan(){
+    public void init(){
         PackageScanner packageScanner = PackageScanner.getInstance();
-        AtomicBoolean global = new AtomicBoolean(false);
+        AtomicBoolean enabled = new AtomicBoolean(false);
         Optional.ofNullable(packageScanner.getStarterClass()).ifPresent(e ->
-                global.set(e.isAnnotationPresent(EnableDataSourceAutoConfiguration.class)));
-        if(global.get()){
+                enabled.set(e.isAnnotationPresent(EnableDataSourceAutoConfiguration.class)));
+        if(enabled.get()){
             packageScanner.getAllClasses().stream().filter(e -> e.isAnnotationPresent(Table.class))
                     .collect(Collectors.toSet()).forEach(this::getColumns);
+            //try connect database
+            ConnectionManager.getInstance().init();
         }
     }
 
     private void getColumns(Class<?> clazz) {
+        System.out.println("table class == "+clazz.getName());
         Set<Field> fields = Arrays.stream(clazz.getDeclaredFields()).filter(e -> e.isAnnotationPresent(Column.class))
                 .collect(Collectors.toSet());
         List<Field> ids = fields.stream().filter(e -> e.isAnnotationPresent(Id.class)).collect(Collectors.toList());
@@ -86,7 +89,7 @@ public class DataSourceManager {
         return columnName.isEmpty() ? mapCamelCaseToUnderscore(e.getName()) : columnName;
     }
 
-    private String mapCamelCaseToUnderscore(String simpleName){
+    public String mapCamelCaseToUnderscore(String simpleName){
         StringBuilder builder = new StringBuilder(simpleName.substring(0,1).toLowerCase());
         char[] chars = simpleName.toCharArray();
         for(int i=1,len = simpleName.length(); i < len; ++i){

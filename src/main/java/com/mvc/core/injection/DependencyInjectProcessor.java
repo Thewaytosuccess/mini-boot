@@ -11,6 +11,7 @@ import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.annotation.type.component.Component;
 import com.mvc.annotation.type.controller.Controller;
 import com.mvc.annotation.type.controller.RestController;
+import com.mvc.annotation.type.repository.Repository;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.core.aspect.AspectProcessor;
 import com.mvc.enums.ExceptionEnum;
@@ -58,7 +59,8 @@ public class DependencyInjectProcessor {
                     clazz.isAnnotationPresent(RestController.class) ||
                     clazz.isAnnotationPresent(Controller.class) ||
                     clazz.isAnnotationPresent(SpringBootApplication.class) ||
-                    clazz.isAnnotationPresent(ControllerAdvice.class)) {
+                    clazz.isAnnotationPresent(ControllerAdvice.class) ||
+                    clazz.isAnnotationPresent(Repository.class)) {
                     //ioc
                     inject(clazz);
                 }

@@ -42,7 +42,8 @@ public class JdbcUtil<T> {
                 fields.forEach(e -> {
                     try {
                         clazz.getDeclaredMethod(setter(e.getName()),e.getType()).invoke(t,
-                                resultSet.getObject(e.getName(), e.getType()));
+                                resultSet.getObject(DataSourceManager.getInstance().mapCamelCaseToUnderscore(
+                                        e.getName()), e.getType()));
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }

@@ -1,6 +1,6 @@
 package com.mvc;
 
-import com.mvc.annotation.enable.EnableScheduling;
+import com.mvc.annotation.enable.EnableDataSourceAutoConfiguration;
 import com.mvc.annotation.method.schedule.Scheduled;
 import com.mvc.annotation.type.SpringBootApplication;
 import com.mvc.annotation.type.component.ComponentScan;
@@ -10,9 +10,7 @@ import com.mvc.annotation.type.component.ComponentScan;
  */
 @SpringBootApplication
 @ComponentScan(basePackages = "com.mvc")
-//@EnableAsync
-@EnableScheduling
-//@EnableAspectJAutoProxy
+@EnableDataSourceAutoConfiguration
 public class ApplicationStarter {
 
     @Scheduled(prefix = "quartz.job")
