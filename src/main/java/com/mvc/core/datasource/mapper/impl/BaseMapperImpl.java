@@ -3,6 +3,7 @@ package com.mvc.core.datasource.mapper.impl;
 import com.mvc.core.datasource.db.JdbcUtil;
 import com.mvc.core.datasource.db.SqlGenerator;
 import com.mvc.core.datasource.mapper.BaseMapper;
+import com.mvc.core.datasource.wrapper.impl.QueryWrapper;
 import com.mvc.enums.SqlTypeEnum;
 
 import java.util.List;
@@ -31,6 +32,14 @@ public class BaseMapperImpl<T> implements BaseMapper<T> {
         String sql = SqlGenerator.getInstance().generate(t, SqlTypeEnum.UPDATE);
         System.out.println("update sql = "+sql);
         return new JdbcUtil<>().update(sql);
+    }
+
+    @Override
+    public List<T> select(QueryWrapper<T> t) {
+        String sql = t.sql();
+        System.out.println("select sql = "+sql);
+        JdbcUtil<T> util = new JdbcUtil<>();
+        return util.query(t.getGeneric(), sql);
     }
 
     @Override

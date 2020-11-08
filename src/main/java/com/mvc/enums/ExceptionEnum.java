@@ -16,7 +16,8 @@ public enum ExceptionEnum {
     CONTROLLER_ADVICE_DUPLICATED("controller_advice_duplicated","异常处理类至多只能有一个"),
     ID_DUPLICATED("id_duplicated","主键冲突"),
     ID_NULL("id_null","缺少主键"),
-    LENGTH_NULL("length null","字段长度不能为空");
+    LENGTH_NULL("length null","字段长度不能为空"),
+    GENERIC_NULL("generic_null","泛型不能为空");
 
     private final String code;
 

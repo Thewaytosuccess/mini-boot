@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -49,11 +50,17 @@ public class JdbcUtil<T> {
             ResultSet resultSet = getConnection().prepareStatement(sql).executeQuery();
             while(resultSet.next()){
                 T t = clazz.newInstance();
-                fields.forEach(e -> {
+                fields.forEach(f -> {
                     try {
-                        clazz.getDeclaredMethod(setter(e.getName()),e.getType()).invoke(t,
-                                resultSet.getObject(DataSourceManager.getInstance().mapCamelCaseToUnderscore(
-                                        e.getName()), e.getType()));
+                        String column = DataSourceManager.getInstance().mapCamelCaseToUnderscore(
+                                f.getName());
+                        Object value;
+                        if(f.getType() == Date.class){
+                            value = new Date(resultSet.getTimestamp(column).getTime());
+                        }else{
+                            value = resultSet.getObject(column, f.getType());
+                        }
+                        clazz.getDeclaredMethod(setter(f.getName()),f.getType()).invoke(t, value);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }

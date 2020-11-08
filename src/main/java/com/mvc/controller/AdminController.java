@@ -18,10 +18,8 @@ public class AdminController {
     @Resource(name="anotherUserServiceImpl")
     private UserService userService;
 
-    @GetMapping("/get/{userId}")
-    public Object getUser(@PathVariable Long userId){
-        User user = new User();
-        user.setUserId(userId);
+    @GetMapping("/get")
+    public Object getUser(User user){
         return userService.get(user);
     }
 

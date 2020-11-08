@@ -29,5 +29,11 @@ public interface ConstantPool {
 
     String RIGHT_BRACKET = ")";
 
+    String ORDER = "order";
+
+    String AND = "and";
+
+    String COMMA = ",";
+
 
 }

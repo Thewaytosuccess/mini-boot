@@ -2,6 +2,6 @@
 **简易版boot**
 
 _实现了简单的ioc,aop,mvc,interceptor_
-持续优化中
+going on
 
-TODO 连接数据库，定时任务持久化
+TODO 获取泛型，接入druid，定时任务支持持久化

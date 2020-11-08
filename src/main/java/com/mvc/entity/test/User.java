@@ -4,6 +4,8 @@ import com.mvc.annotation.jpa.Column;
 import com.mvc.annotation.jpa.Id;
 import com.mvc.annotation.jpa.Table;
 
+import java.util.Date;
+
 /**
  * @author xhzy
  */
@@ -19,6 +21,17 @@ public class User {
 
     @Column(length = 20)
     private String password;
+
+    @Column(length = 20,defaultValue = "now()",nonnull = true)
+    private Date gmtCreated;
+
+    public Date getGmtCreated() {
+        return gmtCreated;
+    }
+
+    public void setGmtCreated(Date gmtCreated) {
+        this.gmtCreated = gmtCreated;
+    }
 
     public Long getUserId() {
         return userId;
@@ -48,8 +61,9 @@ public class User {
     public String toString() {
         return "User{" +
                 "userId=" + userId +
-                ", username='" + userName + '\'' +
+                ", userName='" + userName + '\'' +
                 ", password='" + password + '\'' +
+                ", gmtCreated=" + gmtCreated +
                 '}';
     }
 }

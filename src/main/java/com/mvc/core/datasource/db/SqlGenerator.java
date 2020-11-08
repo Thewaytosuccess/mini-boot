@@ -1,9 +1,11 @@
 package com.mvc.core.datasource.db;
 
 import com.mvc.core.exception.ExceptionWrapper;
+import com.mvc.core.util.DateUtil;
 import com.mvc.enums.SqlTypeEnum;
 
 import java.lang.reflect.Field;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -20,13 +22,13 @@ public class SqlGenerator {
     public static SqlGenerator getInstance(){ return GENERATOR; }
 
     public String generate(Object obj, SqlTypeEnum type){
-        List<Field> properties = DataSourceManager.getInstance().getTableMap().get(obj.getClass());
-        if(Objects.nonNull(properties) && !properties.isEmpty()){
+        List<Field> columns = DataSourceManager.getInstance().getTableMap().get(obj.getClass());
+        if(Objects.nonNull(columns) && !columns.isEmpty()){
             switch (type){
-                case INSERT: return insert(obj,properties);
-                case DELETE: return deleteByPrimaryKey(obj,properties);
-                case UPDATE: return updateByPrimaryKey(obj,properties);
-                case SELECT: return select(obj,properties);
+                case INSERT: return insert(obj,columns);
+                case DELETE: return deleteByPrimaryKey(obj,columns);
+                case UPDATE: return updateByPrimaryKey(obj,columns);
+                case SELECT: return select(obj,columns);
                 default:
                     throw new IllegalStateException("Unexpected value: " + type);
             }
@@ -43,11 +45,18 @@ public class SqlGenerator {
 
         for(Field f:columns){
             try {
-                if(f.getType() == String.class){
+                if(f.getType() == String.class || f.getType() == Date.class){
                     builder.append("'");
                 }
-                builder.append(clazz.getDeclaredMethod(getter(f.getName())).invoke(obj));
-                if(f.getType() == String.class){
+                Object value = clazz.getDeclaredMethod(getter(f.getName())).invoke(obj);
+                if(Objects.nonNull(value) && value instanceof Date){
+                    value = DateUtil.format((Date)value);
+                }
+                if(Objects.nonNull(value) && value instanceof Boolean){
+                    value = (Boolean)value ? 1 : 0;
+                }
+                builder.append(value);
+                if(f.getType() == String.class || f.getType() == Date.class){
                     builder.append("'");
                 }
                 builder.append(",");
