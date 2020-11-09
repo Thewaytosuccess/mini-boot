@@ -1,12 +1,18 @@
 package com.mvc.core.datasource.wrapper.impl;
 
 import com.mvc.core.datasource.db.DataSourceManager;
+import com.mvc.core.datasource.db.generator.TableGenerator;
 import com.mvc.core.datasource.wrapper.Wrapper;
+import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.util.DateUtil;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.constant.ConstantPool;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Date;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -16,11 +22,16 @@ public class QueryWrapper<T> implements Wrapper<T> {
 
     private StringBuilder builder;
 
-    private final Class<T> generic;
+    public QueryWrapper(){
+        Class<T> t = getGeneric();
+        if(Objects.isNull(t)){
+            throw new ExceptionWrapper(ExceptionEnum.GENERIC_ERROR);
+        }
 
-    public QueryWrapper(Class<T> t){
-        this.generic = t;
-        String table = DataSourceManager.getInstance().getTableName(t);
+        String table = TableGenerator.getInstance().getTableName(t);
+        if(Objects.isNull(table)){
+            throw new ExceptionWrapper(ExceptionEnum.TABLE_NULL);
+        }
         this.builder = new StringBuilder("select ").append(DataSourceManager.getInstance().getTableMap()
                 .get(t).stream().map(this::getColumn).collect(Collectors.joining(",")))
                 .append(" from ").append(table).append(" where 1 = 1 and");
@@ -33,7 +44,7 @@ public class QueryWrapper<T> implements Wrapper<T> {
         return builder.toString();
     }
 
-    private String getColumn(Field f){ return DataSourceManager.getInstance().getColumnName(f); }
+    private String getColumn(Field f){ return TableGenerator.getInstance().getColumnName(f); }
 
     @Override
     public QueryWrapper<T> eq(String column,Object value){
@@ -84,7 +95,7 @@ public class QueryWrapper<T> implements Wrapper<T> {
             Date date = (Date)value;
             builder.append(" ").append("datediff(").append(column).append(",").append(DateUtil.format(date))
                     .append(") ").append(sign).append(" 0 and");
-        }else if(!(value instanceof StringBuilder)){
+        }else if(!(value instanceof String)){
             builder.append(" ").append(column).append(" ").append(sign).append(" ").append(value).append(" and");
         }
     }
@@ -126,13 +137,12 @@ public class QueryWrapper<T> implements Wrapper<T> {
     }
 
     public Class<T> getGeneric() {
-//        ParameterizedType type = (ParameterizedType)t.getClass().getGenericInterfaces()[0];
-//        if(Objects.isNull(type)){
-//            throw new ExceptionWrapper(ExceptionEnum.GENERIC_NULL);
-//        }
-//        Type type1 = type.getActualTypeArguments()[0];
-//        System.out.println("generic clazz = "+type1.getTypeName());
-//        return (Class<T>) type1;
-        return generic;
+        Type t = getClass().getGenericSuperclass();
+        if(t instanceof ParameterizedType){
+            ParameterizedType type = (ParameterizedType)t;
+            return (Class<T>) type.getActualTypeArguments()[0];
+        }
+        return null;
     }
+
 }

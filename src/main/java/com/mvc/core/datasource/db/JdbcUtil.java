@@ -2,6 +2,7 @@ package com.mvc.core.datasource.db;
 
 import com.mvc.core.datasource.connection.ConnectionManager;
 import com.mvc.core.datasource.db.DataSourceManager;
+import com.mvc.core.datasource.db.generator.TableGenerator;
 import com.mvc.core.exception.ExceptionWrapper;
 
 import java.lang.reflect.Field;
@@ -52,7 +53,7 @@ public class JdbcUtil<T> {
                 T t = clazz.newInstance();
                 fields.forEach(f -> {
                     try {
-                        String column = DataSourceManager.getInstance().mapCamelCaseToUnderscore(
+                        String column = TableGenerator.getInstance().mapCamelCaseToUnderscore(
                                 f.getName());
                         Object value;
                         if(f.getType() == Date.class){

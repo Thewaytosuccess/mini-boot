@@ -1,5 +1,6 @@
-package com.mvc.core.datasource.db;
+package com.mvc.core.datasource.db.generator;
 
+import com.mvc.core.datasource.db.DataSourceManager;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.util.DateUtil;
 import com.mvc.enums.SqlTypeEnum;
@@ -76,10 +77,10 @@ public class SqlGenerator {
     }
 
     private String getTable(Class<?> clazz){
-        return DataSourceManager.getInstance().getTableName(clazz);
+        return TableGenerator.getInstance().getTableName(clazz);
     }
 
-    private String getColumn(Field f){ return DataSourceManager.getInstance().getColumnName(f); }
+    private String getColumn(Field f){ return TableGenerator.getInstance().getColumnName(f); }
 
     private String deleteByPrimaryKey(Object obj, List<Field> columns){
         Class<?> clazz = obj.getClass();

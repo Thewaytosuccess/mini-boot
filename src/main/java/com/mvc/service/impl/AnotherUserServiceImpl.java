@@ -64,7 +64,7 @@ public class AnotherUserServiceImpl implements UserService {
 
     @Override
     public List<User> get(User user) {
-        QueryWrapper<User> wrapper = new QueryWrapper<>(User.class);
+        QueryWrapper<User> wrapper = new QueryWrapper<User>(){};
         Long userId = user.getUserId();
         if(Objects.nonNull(userId)){
             wrapper.eq("user_id", userId);
