@@ -47,7 +47,7 @@ public class HandlerMapping {
      */
     public void buildMapping(){
         //待处理@Controller
-        IocContainer.getInstance().getControllers().forEach(e -> {
+        PackageScanner.getInstance().getControllers().forEach(e -> {
             //解析类上的@RequestMapping，拼装uri前缀
             getUriPrefix(e);
             //建立uri和对应的方法的映射

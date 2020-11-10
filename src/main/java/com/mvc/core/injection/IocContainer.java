@@ -1,10 +1,6 @@
 package com.mvc.core.injection;
 
-import com.mvc.annotation.type.controller.Controller;
-import com.mvc.annotation.type.controller.RestController;
-
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author xhzy
@@ -52,11 +48,5 @@ public class IocContainer {
 
     public Object getClassInstance(Class<?> clazz){
         return Objects.nonNull(iocContainer) ? iocContainer.get(clazz) : null;
-    }
-
-    public List<Class<?>> getControllers() {
-        Optional<List<Class<?>>> classes = Optional.ofNullable(this.classes);
-        return classes.map(classList -> classList.stream().filter(c -> c.isAnnotationPresent(RestController.class)
-                || c.isAnnotationPresent(Controller.class)).collect(Collectors.toList())).orElse(Collections.emptyList());
     }
 }

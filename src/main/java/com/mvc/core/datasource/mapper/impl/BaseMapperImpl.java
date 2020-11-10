@@ -21,7 +21,7 @@ public class BaseMapperImpl<T> implements BaseMapper<T> {
     }
 
     @Override
-    public boolean deleteByPrimaryKey(T t) {
+    public boolean deleteByPrimaryKey(Object t) {
         String sql = SqlGenerator.getInstance().generate(t, SqlTypeEnum.DELETE);
         System.out.println("delete sql = "+sql);
         return new JdbcUtil<>().update(sql);
@@ -43,11 +43,12 @@ public class BaseMapperImpl<T> implements BaseMapper<T> {
     }
 
     @Override
-    public List<T> select(T t) {
+    public T selectByPrimaryKey(T t) {
         String sql = SqlGenerator.getInstance().generate(t, SqlTypeEnum.SELECT);
         System.out.println("select sql = "+sql);
         JdbcUtil<T> util = new JdbcUtil<>();
-        return util.query((Class<T>) t.getClass(), sql);
+        List<T> list = util.query((Class<T>) t.getClass(), sql);
+        return list.isEmpty() ? null : list.get(0);
     }
 
 }

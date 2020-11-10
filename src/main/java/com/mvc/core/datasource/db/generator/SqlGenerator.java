@@ -3,6 +3,7 @@ package com.mvc.core.datasource.db.generator;
 import com.mvc.core.datasource.db.DataSourceManager;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.util.DateUtil;
+import com.mvc.enums.ExceptionEnum;
 import com.mvc.enums.SqlTypeEnum;
 
 import java.lang.reflect.Field;
@@ -29,7 +30,7 @@ public class SqlGenerator {
                 case INSERT: return insert(obj,columns);
                 case DELETE: return deleteByPrimaryKey(obj,columns);
                 case UPDATE: return updateByPrimaryKey(obj,columns);
-                case SELECT: return select(obj,columns);
+                case SELECT: return selectByPrimaryKey(obj,columns);
                 default:
                     throw new IllegalStateException("Unexpected value: " + type);
             }
@@ -137,7 +138,7 @@ public class SqlGenerator {
         }
     }
 
-    private String select(Object obj, List<Field> columns){
+    private String selectByPrimaryKey(Object obj, List<Field> columns){
         Class<?> clazz = obj.getClass();
         String table = getTable(clazz);
 
@@ -158,25 +159,7 @@ public class SqlGenerator {
                 }
                 return builder.toString();
             }else{
-                for (Field f:columns){
-                    try {
-                        value = clazz.getDeclaredMethod(getter(f.getName())).invoke(obj);
-                        if(Objects.nonNull(value)){
-                            builder.append(getColumn(f)).append(" = ");
-                            if(f.getType() == String.class){
-                                builder.append("'");
-                            }
-                            builder.append(value);
-                            if(f.getType() == String.class){
-                                builder.append("'");
-                            }
-                            builder.append(" and ");
-                        }
-                    } catch (Exception e) {
-                        throw new ExceptionWrapper(e);
-                    }
-                }
-                return builder.deleteCharAt(builder.length() - 6).toString();
+                throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
             }
         } catch (Exception e) {
             throw new ExceptionWrapper(e);

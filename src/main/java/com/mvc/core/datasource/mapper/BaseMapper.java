@@ -42,6 +42,6 @@ public interface BaseMapper<T> {
      * @param obj obj
      * @return result
      */
-    List<T> select(T obj);
+    T selectByPrimaryKey(T obj);
 
 }

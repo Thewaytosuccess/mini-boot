@@ -37,6 +37,10 @@ public class PackageScanner {
 
     private Class<?> starterClass;
 
+    private List<Class<?>> repositories;
+
+    private List<Class<?>> controllers;
+
     public void scan(String basePackage){
         //1.包扫描,basePackage为空时，扫描项目根路径下的所有文件
         packageScan(basePackage);
@@ -59,6 +63,20 @@ public class PackageScanner {
         return allClasses;
     }
 
+    public List<Class<?>> getRepositories(){
+        if(Objects.isNull(repositories)){
+            repositories = new ArrayList<>();
+        }
+        return repositories;
+    }
+
+    public List<Class<?>> getControllers(){
+        if(Objects.isNull(controllers)){
+            controllers = new ArrayList<>();
+        }
+        return controllers;
+    }
+
     /**
      * 解析包含注解的类并按照优先级排序,同时过滤掉不含注解的类
      * 注解优先级：@Configuration > @Component > @Service > @Controller/@RestController
@@ -67,12 +85,9 @@ public class PackageScanner {
         List<Class<?>> configurationClasses = new ArrayList<>();
         List<Class<?>> componentClasses = new ArrayList<>();
         List<Class<?>> serviceClasses = new ArrayList<>();
-        List<Class<?>> controllerClasses = new ArrayList<>();
-        List<Class<?>> restControllerClasses = new ArrayList<>();
         List<Class<?>> interceptorClasses = new ArrayList<>();
         List<Class<?>> controllerAdvice = new ArrayList<>();
         List<Class<?>> application = new ArrayList<>();
-        List<Class<?>> repositories = new ArrayList<>();
 
         Set<Class<?>> allClasses = getAllClasses();
         boolean empty = true;
@@ -92,10 +107,8 @@ public class PackageScanner {
                     componentClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(Service.class)){
                     serviceClasses.add(clazz);
-                }else if(clazz.isAnnotationPresent(RestController.class)){
-                    restControllerClasses.add(clazz);
-                }else if(clazz.isAnnotationPresent(Controller.class)){
-                    controllerClasses.add(clazz);
+                }else if(clazz.isAnnotationPresent(RestController.class) || clazz.isAnnotationPresent(Controller.class)){
+                    getControllers().add(clazz);
                 }else if(clazz.isAnnotationPresent(ControllerAdvice.class)){
                     controllerAdvice.add(clazz);
                 }else if(clazz.isAnnotationPresent(Interceptor.class)){
@@ -103,7 +116,7 @@ public class PackageScanner {
                 }else if(clazz.isAnnotationPresent(SpringBootApplication.class)){
                     application.add(clazz);
                 }else if(clazz.isAnnotationPresent(Repository.class)){
-                    repositories.add(clazz);
+                    getRepositories().add(clazz);
                 }
             } catch (ClassNotFoundException ex) {
                 throw new ExceptionWrapper(ex);
@@ -126,8 +139,7 @@ public class PackageScanner {
         classes.addAll(repositories);
         classes.addAll(componentClasses);
         classes.addAll(serviceClasses);
-        classes.addAll(restControllerClasses);
-        classes.addAll(controllerClasses);
+        classes.addAll(controllers);
         classes.addAll(interceptorClasses);
         //倒数第二个作为启动类
         classes.add(starterClass);

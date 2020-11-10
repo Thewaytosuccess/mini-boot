@@ -1,6 +1,7 @@
 package com.mvc.core.exception;
 
 import com.mvc.annotation.exception.ControllerAdvice;
+import com.mvc.core.mapping.PackageScanner;
 import com.mvc.entity.method.Signature;
 import com.mvc.enums.AdviceEnum;
 import com.mvc.core.injection.IocContainer;
@@ -57,7 +58,7 @@ public class ControllerAdviceHandler {
         }
 
         String finalAdviceMethod = adviceMethod;
-        IocContainer.getInstance().getControllers().forEach(clazz -> Arrays.stream(clazz.getDeclaredMethods())
+        PackageScanner.getInstance().getControllers().forEach(clazz -> Arrays.stream(clazz.getDeclaredMethods())
                 .forEach(m -> methods.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
                 clazz.getName() + PATH_SEPARATOR + m.getName(),AdviceEnum.AfterThrowing, finalAdviceMethod))));
         return methods;
