@@ -1,41 +1,63 @@
 package com.mvc.core.repository;
 
+import com.mvc.annotation.jpa.Id;
+import com.mvc.annotation.jpa.PrimaryKey;
+import com.mvc.core.datasource.db.DataSourceManager;
 import com.mvc.core.datasource.mapper.impl.BaseMapperImpl;
+import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.mapping.PackageScanner;
+import com.mvc.enums.ExceptionEnum;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author xhzy
  */
 public class RepositoryManager {
 
-    Map<Class<?>,Class<?>> map;
+    private static final RepositoryManager MANAGER = new RepositoryManager();
 
-    public Map<Class<?>,Class<?>> getMap(){
-        if(Objects.isNull(map)){
-            map = new HashMap<>();
-        }
-        return map;
-    }
+    private RepositoryManager(){}
+
+    public static RepositoryManager getInstance(){ return MANAGER; }
 
     /**
-     * 建立repository和泛型的映射
+     * 实体扫描
      */
-    public void buildMapping(){
+    public void scanEntities(){
+        List<Class<?>> entities = new ArrayList<>();
         PackageScanner.getInstance().getRepositories().stream().filter(e -> e.getSuperclass() == BaseMapperImpl.class)
-        .forEach(this::getGeneric);
+        .forEach(e -> getGeneric(e,entities));
+        Map<Class<?>, List<Field>> tableMap = DataSourceManager.getInstance().getTableMap();
+        entities.forEach(e -> {
+            List<Field> fields = tableMap.get(e);
+            if(Objects.isNull(fields) || fields.isEmpty()){
+                tableMap.put(e,getPrimaryKey(e));
+            }
+        });
     }
 
-    private void getGeneric(Class<?> clazz){
+    private List<Field> getPrimaryKey(Class<?> clazz) {
+        List<Field> ids = Arrays.stream(clazz.getDeclaredFields()).filter(e -> e.isAnnotationPresent(PrimaryKey.class) ||
+                e.isAnnotationPresent(Id.class)).collect(Collectors.toList());
+        if(ids.size() == 0){
+            throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
+        }
+        if(ids.size() > 1){
+            throw new ExceptionWrapper(ExceptionEnum.ID_DUPLICATED);
+        }
+        return ids;
+    }
+
+    private void getGeneric(Class<?> clazz,List<Class<?>> entities){
         Type t = clazz.getGenericSuperclass();
         if(t instanceof ParameterizedType){
             ParameterizedType type = (ParameterizedType)t;
-            getMap().put(clazz,(Class<?>)type.getActualTypeArguments()[0]);
+            entities.add((Class<?>)type.getActualTypeArguments()[0]);
         }
     }
 }

@@ -24,6 +24,7 @@ public class SqlGenerator {
     public static SqlGenerator getInstance(){ return GENERATOR; }
 
     public String generate(Object obj, SqlTypeEnum type){
+        //todo
         List<Field> columns = DataSourceManager.getInstance().getTableMap().get(obj.getClass());
         if(Objects.nonNull(columns) && !columns.isEmpty()){
             switch (type){
@@ -84,14 +85,18 @@ public class SqlGenerator {
     private String getColumn(Field f){ return TableGenerator.getInstance().getColumnName(f); }
 
     private String deleteByPrimaryKey(Object obj, List<Field> columns){
-        Class<?> clazz = obj.getClass();
-        String table = getTable(clazz);
-
+        if(columns.isEmpty()){
+            throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
+        }
         Field pk = columns.get(0);
+        Class<?> clazz = pk.getDeclaringClass();
+        String table = getTable(clazz);
         StringBuilder builder = new StringBuilder("delete from " + table + " where ").append(getColumn(pk))
                 .append(" = ");
         try {
-            return builder.append(clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj)).toString();
+            Object value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
+            return value instanceof String ? builder.append("'").append(value).append("'").toString() :
+                    builder.append(value).toString();
         } catch (Exception e) {
             throw new ExceptionWrapper(e);
         }
@@ -125,39 +130,31 @@ public class SqlGenerator {
         Field pk = columns.get(0);
         builder.deleteCharAt(builder.length() - 1).append(" where ").append(getColumn(pk)).append(" = ");
         try {
-            if(pk.getType() == String.class){
-                builder.append("'");
-            }
-            builder.append(clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj));
-            if(pk.getType() == String.class){
-                builder.append("'");
-            }
-            return builder.toString();
+            value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
+            return pk.getType() == String.class ? builder.append("'").append(value).append("'").toString() :
+                    builder.append(value).toString();
         } catch (Exception e) {
             throw new ExceptionWrapper(e);
         }
     }
 
     private String selectByPrimaryKey(Object obj, List<Field> columns){
-        Class<?> clazz = obj.getClass();
+        if(columns.isEmpty()){
+            throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
+        }
+
+        Field pk = columns.get(0);
+        Class<?> clazz = pk.getDeclaringClass();
         String table = getTable(clazz);
 
         StringBuilder builder = new StringBuilder("select ").append(columns.stream().map(this::getColumn)
                 .collect(Collectors.joining(","))).append(" from ").append(table).append(" where ");
-
-        Field pk = columns.get(0);
         try {
             Object value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
             if(Objects.nonNull(value)){
                 builder.append(getColumn(pk)).append(" = ");
-                if(pk.getType() == String.class){
-                    builder.append("'");
-                }
-                builder.append(value);
-                if(pk.getType() == String.class){
-                    builder.append("'");
-                }
-                return builder.toString();
+                return pk.getType() == String.class ? builder.append("'").append(value).append("'").toString() :
+                        builder.append(value).toString();
             }else{
                 throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
             }

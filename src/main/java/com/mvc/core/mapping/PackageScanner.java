@@ -89,7 +89,7 @@ public class PackageScanner {
         List<Class<?>> controllerAdvice = new ArrayList<>();
         List<Class<?>> application = new ArrayList<>();
 
-        Set<Class<?>> allClasses = getAllClasses();
+        allClasses = getAllClasses();
         boolean empty = true;
         if(!allClasses.isEmpty()){
             empty = false;
@@ -108,7 +108,8 @@ public class PackageScanner {
                 }else if(clazz.isAnnotationPresent(Service.class)){
                     serviceClasses.add(clazz);
                 }else if(clazz.isAnnotationPresent(RestController.class) || clazz.isAnnotationPresent(Controller.class)){
-                    getControllers().add(clazz);
+                    controllers = getControllers();
+                    controllers.add(clazz);
                 }else if(clazz.isAnnotationPresent(ControllerAdvice.class)){
                     controllerAdvice.add(clazz);
                 }else if(clazz.isAnnotationPresent(Interceptor.class)){
@@ -116,7 +117,8 @@ public class PackageScanner {
                 }else if(clazz.isAnnotationPresent(SpringBootApplication.class)){
                     application.add(clazz);
                 }else if(clazz.isAnnotationPresent(Repository.class)){
-                    getRepositories().add(clazz);
+                    repositories = getRepositories();
+                    repositories.add(clazz);
                 }
             } catch (ClassNotFoundException ex) {
                 throw new ExceptionWrapper(ex);

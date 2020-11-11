@@ -9,6 +9,7 @@ import com.mvc.core.datasource.connection.ConnectionManager;
 import com.mvc.core.datasource.db.generator.TableGenerator;
 import com.mvc.core.exception.ExceptionWrapper;
 import com.mvc.core.mapping.PackageScanner;
+import com.mvc.core.repository.RepositoryManager;
 import com.mvc.enums.ExceptionEnum;
 
 import java.lang.reflect.Field;
@@ -42,14 +43,16 @@ public class DataSourceManager {
         Optional.ofNullable(packageScanner.getStarterClass()).ifPresent(e ->
                 enabled.set(e.isAnnotationPresent(EnableDataSourceAutoConfiguration.class)));
         if(enabled.get()){
+            //try connect database
+            ConnectionManager.getInstance().init();
             Set<Class<?>> tables = packageScanner.getAllClasses().stream().filter(e -> e.isAnnotationPresent(Table.class))
                     .collect(Collectors.toSet());
             tables.forEach(this::getColumns);
-            //try connect database
-            ConnectionManager.getInstance().init();
             //create table
             TableGenerator generator = TableGenerator.getInstance();
             tables.forEach(generator::createTable);
+
+            RepositoryManager.getInstance().scanEntities();
         }
     }
 

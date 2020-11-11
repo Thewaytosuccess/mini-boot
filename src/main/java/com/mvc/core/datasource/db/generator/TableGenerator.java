@@ -27,7 +27,7 @@ public class TableGenerator {
 
     public String getColumnName(Field e) {
         if(!e.isAnnotationPresent(Column.class)){
-            return null;
+            return mapCamelCaseToUnderscore(e.getName());
         }
         String columnName = e.getAnnotation(Column.class).column();
         return columnName.isEmpty() ? mapCamelCaseToUnderscore(e.getName()) : columnName;
@@ -35,7 +35,7 @@ public class TableGenerator {
 
     public String getTableName(Class<?> clazz) {
         if(!clazz.isAnnotationPresent(Table.class)){
-            return null;
+            return mapCamelCaseToUnderscore(clazz.getSimpleName());
         }
         String tableName = clazz.getAnnotation(Table.class).table();
         return tableName.isEmpty() ? mapCamelCaseToUnderscore(clazz.getSimpleName()) : tableName;
