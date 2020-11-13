@@ -14,6 +14,7 @@ import com.mvc.annotation.type.controller.RestController;
 import com.mvc.annotation.type.repository.Repository;
 import com.mvc.annotation.type.service.Service;
 import com.mvc.core.aspect.AspectProcessor;
+import com.mvc.core.repository.RepositoryManager;
 import com.mvc.enums.ExceptionEnum;
 import com.mvc.core.exception.ExceptionHandler;
 import com.mvc.core.exception.ExceptionWrapper;
@@ -93,6 +94,13 @@ public class DependencyInjectProcessor {
                 //将代理对象重新注入到依赖它的类中
                 IocContainer.getInstance().getClasses().forEach(e -> reInject(e,set));
             }
+        }
+    }
+
+    public void reInjectRepository(){
+        if(RepositoryManager.getInstance().rejected()){
+            Set<Class<?>> set = RepositoryManager.getInstance().getReInjected();
+            IocContainer.getInstance().getClasses().forEach(e -> reInject(e, set));
         }
     }
 

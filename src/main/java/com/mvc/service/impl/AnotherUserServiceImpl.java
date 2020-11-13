@@ -52,9 +52,10 @@ public class AnotherUserServiceImpl implements UserService {
         return userRepository.insert(user);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public boolean delete(User user) {
-        return userRepository.deleteByPrimaryKey(user);
+    public boolean delete(Long userId) {
+        return userRepository.deleteByPrimaryKey(userId);
     }
 
     @Override

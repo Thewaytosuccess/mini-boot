@@ -15,17 +15,12 @@ import java.util.stream.Collectors;
 /**
  * @author xhzy
  */
-public class SqlGenerator {
+public class SqlGenerator<T> {
 
-    private static final SqlGenerator GENERATOR = new SqlGenerator();
-
-    private SqlGenerator(){}
-
-    public static SqlGenerator getInstance(){ return GENERATOR; }
-
-    public String generate(Object obj, SqlTypeEnum type){
-        //todo
-        List<Field> columns = DataSourceManager.getInstance().getTableMap().get(obj.getClass());
+    @SafeVarargs
+    public final String generate(Object obj, SqlTypeEnum type, Class<T>... t){
+        Class<?> clazz = Objects.nonNull(t) ? t[0] : obj.getClass();
+        List<Field> columns = DataSourceManager.getInstance().getTableMap().get(clazz);
         if(Objects.nonNull(columns) && !columns.isEmpty()){
             switch (type){
                 case INSERT: return insert(obj,columns);
@@ -93,17 +88,17 @@ public class SqlGenerator {
         String table = getTable(clazz);
         StringBuilder builder = new StringBuilder("delete from " + table + " where ").append(getColumn(pk))
                 .append(" = ");
-        try {
-            Object value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
-            return value instanceof String ? builder.append("'").append(value).append("'").toString() :
-                    builder.append(value).toString();
-        } catch (Exception e) {
-            throw new ExceptionWrapper(e);
-        }
+        return obj instanceof String ? builder.append("'").append(obj).append("'").toString() :
+                builder.append(obj).toString();
     }
 
     private String updateByPrimaryKey(Object obj, List<Field> columns){
-        Class<?> clazz = obj.getClass();
+        if(columns.isEmpty()){
+            throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
+        }
+
+        Field pk = columns.get(0);
+        Class<?> clazz = pk.getDeclaringClass();
         String table = getTable(clazz);
 
         StringBuilder builder = new StringBuilder("update " + table + " set ");
@@ -127,7 +122,6 @@ public class SqlGenerator {
             }
         }
 
-        Field pk = columns.get(0);
         builder.deleteCharAt(builder.length() - 1).append(" where ").append(getColumn(pk)).append(" = ");
         try {
             value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
@@ -148,19 +142,10 @@ public class SqlGenerator {
         String table = getTable(clazz);
 
         StringBuilder builder = new StringBuilder("select ").append(columns.stream().map(this::getColumn)
-                .collect(Collectors.joining(","))).append(" from ").append(table).append(" where ");
-        try {
-            Object value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
-            if(Objects.nonNull(value)){
-                builder.append(getColumn(pk)).append(" = ");
-                return pk.getType() == String.class ? builder.append("'").append(value).append("'").toString() :
-                        builder.append(value).toString();
-            }else{
-                throw new ExceptionWrapper(ExceptionEnum.ID_NULL);
-            }
-        } catch (Exception e) {
-            throw new ExceptionWrapper(e);
-        }
+                .collect(Collectors.joining(","))).append(" from ").append(table).append(" where ")
+                .append(getColumn(pk)).append(" = ");
+        return pk.getType() == String.class ? builder.append("'").append(obj).append("'").toString() :
+                builder.append(obj).toString();
     }
 
 }

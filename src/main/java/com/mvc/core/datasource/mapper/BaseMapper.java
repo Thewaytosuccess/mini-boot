@@ -18,10 +18,11 @@ public interface BaseMapper<T> {
 
     /**
      * delete
-     * @param obj obj
+     * @param o obj
+     * @param t generic type
      * @return result
      */
-    boolean deleteByPrimaryKey(T obj);
+    boolean deleteByPrimaryKey(Object o,Class<T>... t);
 
     /**
      * update
@@ -39,9 +40,10 @@ public interface BaseMapper<T> {
 
     /**
      * select
-     * @param obj obj
+     * @param o obj
+     * @param t obj
      * @return result
      */
-    T selectByPrimaryKey(T obj);
+    T selectByPrimaryKey(Object o, Class<T>... t);
 
 }

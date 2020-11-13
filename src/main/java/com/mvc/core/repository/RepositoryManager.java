@@ -5,7 +5,10 @@ import com.mvc.annotation.jpa.PrimaryKey;
 import com.mvc.core.datasource.db.DataSourceManager;
 import com.mvc.core.datasource.mapper.impl.BaseMapperImpl;
 import com.mvc.core.exception.ExceptionWrapper;
+import com.mvc.core.injection.DependencyInjectProcessor;
+import com.mvc.core.injection.IocContainer;
 import com.mvc.core.mapping.PackageScanner;
+import com.mvc.core.proxy.mapper.MapperProxy;
 import com.mvc.enums.ExceptionEnum;
 
 import java.lang.reflect.Field;
@@ -25,13 +28,40 @@ public class RepositoryManager {
 
     public static RepositoryManager getInstance(){ return MANAGER; }
 
+    private Map<Class<?>,Class<?>> mapping;
+
+    public Map<Class<?>,Class<?>> getMapping(){
+        if(Objects.isNull(mapping)){
+            mapping = new HashMap<>(16);
+        }
+        return mapping;
+    }
+
+    public boolean rejected(){
+        return Objects.nonNull(mapping) && !mapping.isEmpty();
+    }
+
+    public Set<Class<?>> getReInjected(){
+        if(rejected()){
+            return mapping.keySet();
+        }
+        return null;
+    }
+
     /**
      * 实体扫描
      */
     public void scanEntities(){
         List<Class<?>> entities = new ArrayList<>();
         PackageScanner.getInstance().getRepositories().stream().filter(e -> e.getSuperclass() == BaseMapperImpl.class)
-        .forEach(e -> getGeneric(e,entities));
+        .forEach(e -> {
+            //获取repository对应的泛型
+            getGeneric(e,entities);
+            //创建代理，并重新注入到ioc容器
+            IocContainer.getInstance().addInstance(e,new MapperProxy(e).getProxy());
+        });
+
+        DependencyInjectProcessor.getInstance().reInjectRepository();
         Map<Class<?>, List<Field>> tableMap = DataSourceManager.getInstance().getTableMap();
         entities.forEach(e -> {
             List<Field> fields = tableMap.get(e);
@@ -58,6 +88,8 @@ public class RepositoryManager {
         if(t instanceof ParameterizedType){
             ParameterizedType type = (ParameterizedType)t;
             entities.add((Class<?>)type.getActualTypeArguments()[0]);
+            mapping = getMapping();
+            mapping.put(clazz,(Class<?>)type.getActualTypeArguments()[0]);
         }
     }
 }

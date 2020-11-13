@@ -30,9 +30,7 @@ public class AdminController {
 
     @DeleteMapping("/delete/{userId}")
     public Object delete(@PathVariable Long userId){
-        User user = new User();
-        user.setUserId(userId);
-        return userService.delete(user);
+        return userService.delete(userId);
     }
 
     @PutMapping("/save")

@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean delete(User user) {
+    public boolean delete(Long userId) {
         return false;
     }
 
