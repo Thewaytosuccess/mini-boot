@@ -4,24 +4,26 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.mvc</groupId>
+    <groupId>com.boot.mini</groupId>
     <artifactId>mini-boot</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
 
     <properties>
-        <servlet.version>3.0.1</servlet.version>
-        <fastjson.version>1.2.68</fastjson.version>
         <jdk.version>1.8</jdk.version>
         <server.port>8080</server.port>
         <default.encoding>utf-8</default.encoding>
         <compile.version>3.8.0</compile.version>
         <tomcat.plugin.version>3.0-r1655215</tomcat.plugin.version>
         <war.plugin.version>3.2.2</war.plugin.version>
+
+        <servlet.version>3.0.1</servlet.version>
+        <fastjson.version>1.2.68</fastjson.version>
         <javassist.verion>3.27.0-GA</javassist.verion>
         <cglib.version>3.1</cglib.version>
         <quartz.version>2.3.0</quartz.version>
         <mysql.version>8.0.16</mysql.version>
+        <druid.version>1.1.10</druid.version>
     </properties>
 
     <dependencies>
@@ -52,6 +54,13 @@
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>${mysql.version}</version>
+        </dependency>
+
+        <!-- druid -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>${druid.version}</version>
         </dependency>
 
         <!-- 动态生成字节码 -->
