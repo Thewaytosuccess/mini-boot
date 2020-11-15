@@ -24,17 +24,16 @@ public class ConnectionManager {
 
     private Connection connection;
 
-    private final List<String> prefix = Collections.unmodifiableList(Arrays.asList("spring.dataSource.druid",
-            "spring.dataSource"));
+    private final List<String> prefix = Collections.unmodifiableList(Arrays.asList("spring.dataSource.druid", "spring.dataSource"));
 
     @PostConstruct
     public void init(){
-        Optional<String> first = prefix.stream().filter(e -> !ConfigurationProcessor.getInstance().getByPrefix(e)
-                .isEmpty()).findFirst();
+        ConfigurationProcessor instance = ConfigurationProcessor.getInstance();
+        Optional<String> first = prefix.stream().filter(e -> !instance.getByPrefix(e).isEmpty()).findFirst();
         if(!first.isPresent()){
             return;
         }
-        Map<String, Object> configs = ConfigurationProcessor.getInstance().getByPrefix(first.get());
+        Map<String, Object> configs = instance.getByPrefix(first.get());
         Object driverClassName = configs.get("driverClassName");
         Object driver = Objects.nonNull(driverClassName) ? driverClassName : configs.get("driver");
 

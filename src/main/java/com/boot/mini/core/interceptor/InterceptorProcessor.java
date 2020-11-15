@@ -30,7 +30,7 @@ public class InterceptorProcessor implements HandlerInterceptor{
         return Objects.nonNull(interceptors) && !interceptors.isEmpty();
     }
 
-    public void add(Class<?> clazz){
+    public void register(Class<?> clazz){
         if(Objects.isNull(interceptors)){
             interceptors = new ArrayList<>();
         }

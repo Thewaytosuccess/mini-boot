@@ -141,13 +141,14 @@ public class DataBindingProcessor {
         try (ServletInputStream inputStream = request.getInputStream()){
             //json request
             if(Objects.nonNull(inputStream)){
-                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                String line;
-                StringBuilder builder = new StringBuilder();
-                while((line = reader.readLine()) != null){
-                    builder.append(line);
+                try(BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))){
+                    String line;
+                    StringBuilder builder = new StringBuilder();
+                    while((line = reader.readLine()) != null){
+                        builder.append(line);
+                    }
+                    return builder.toString();
                 }
-                return builder.toString();
             }
         } catch (IOException e) {
             throw new ExceptionWrapper(e);

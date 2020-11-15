@@ -3,6 +3,7 @@ package com.boot.mini.core.datasource.db;
 import com.boot.mini.core.datasource.connection.ConnectionManager;
 import com.boot.mini.core.datasource.db.generator.TableGenerator;
 import com.boot.mini.core.exception.ExceptionWrapper;
+import com.boot.mini.entity.method.MethodInfo;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -59,7 +60,7 @@ public class JdbcUtil<T> {
                         }else{
                             value = resultSet.getObject(column, f.getType());
                         }
-                        clazz.getDeclaredMethod(setter(f.getName()),f.getType()).invoke(t, value);
+                        clazz.getDeclaredMethod(MethodInfo.setter(f.getName()),f.getType()).invoke(t, value);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -70,13 +71,5 @@ public class JdbcUtil<T> {
         } catch (Exception e) {
             throw new ExceptionWrapper(e);
         }
-    }
-
-    public static String setter(String name) {
-        String setter = "set"+name.substring(0,1).toUpperCase();
-        if(name.length() > 1){
-            setter += name.substring(1);
-        }
-        return setter;
     }
 }

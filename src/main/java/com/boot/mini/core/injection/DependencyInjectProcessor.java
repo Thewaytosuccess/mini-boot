@@ -129,7 +129,7 @@ public class DependencyInjectProcessor {
                 //register interceptor
                 if(Arrays.asList(returnType.getInterfaces()).contains(HandlerInterceptor.class) ||
                    returnType.getSuperclass() == HandlerInterceptor.class){
-                    InterceptorProcessor.getInstance().add(returnType);
+                    InterceptorProcessor.getInstance().register(returnType);
                 }
 
                 //register controllerAdvice
@@ -180,7 +180,7 @@ public class DependencyInjectProcessor {
                     }
                 }
             } catch (Exception ex) {
-                ex.printStackTrace();
+                throw new ExceptionWrapper(ex);
             }
         });
 

@@ -1,7 +1,5 @@
 package com.boot.mini.entity.method;
 
-import com.boot.mini.enums.AdviceEnum;
-
 import java.util.List;
 
 /**
@@ -15,17 +13,25 @@ public class MethodInfo extends Signature{
 
     private List<Param> params;
 
-    public MethodInfo(){
-
-    }
-
     public MethodInfo(String methodName,List<Param> params){
         this.setMethodName(methodName);
         this.params = params;
     }
 
-    public MethodInfo(int parameterCount, Class<?>[] parameterTypes, String methodName, AdviceEnum adviceEnum, String adviceMethod) {
-        super(parameterCount, parameterTypes, methodName, adviceEnum, adviceMethod);
+    public static String getter(String columnName){
+        String getter = "get" + columnName.substring(0,1).toUpperCase();
+        if(columnName.length() > 1){
+            getter += columnName.substring(1);
+        }
+        return getter;
+    }
+
+    public static String setter(String name){
+        String setter = "set" + name.substring(0, 1).toUpperCase();
+        if(name.length() > 1){
+            setter += name.substring(1);
+        }
+        return setter;
     }
 
     public int getModifiers() {

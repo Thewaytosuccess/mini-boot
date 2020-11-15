@@ -26,19 +26,13 @@ public class TableGenerator {
     public static TableGenerator getInstance(){ return GENERATOR; }
 
     public String getColumnName(Field e) {
-        if(!e.isAnnotationPresent(Column.class)){
-            return mapCamelCaseToUnderscore(e.getName());
-        }
-        String columnName = e.getAnnotation(Column.class).column();
-        return columnName.isEmpty() ? mapCamelCaseToUnderscore(e.getName()) : columnName;
+        return e.isAnnotationPresent(Column.class) && !e.getAnnotation(Column.class).column().isEmpty() ?
+                e.getAnnotation(Column.class).column() : mapCamelCaseToUnderscore(e.getName());
     }
 
-    public String getTableName(Class<?> clazz) {
-        if(!clazz.isAnnotationPresent(Table.class)){
-            return mapCamelCaseToUnderscore(clazz.getSimpleName());
-        }
-        String tableName = clazz.getAnnotation(Table.class).table();
-        return tableName.isEmpty() ? mapCamelCaseToUnderscore(clazz.getSimpleName()) : tableName;
+    public String getTableName(Class<?> e) {
+        return e.isAnnotationPresent(Table.class) && !e.getAnnotation(Table.class).table().isEmpty() ?
+                e.getAnnotation(Table.class).table() : mapCamelCaseToUnderscore(e.getSimpleName());
     }
 
     public String mapCamelCaseToUnderscore(String simpleName){

@@ -34,14 +34,14 @@ public class AspectHandler {
     }
 
     public void aspectScan() {
-        AtomicBoolean global = new AtomicBoolean(false);
+        AtomicBoolean enabled = new AtomicBoolean(false);
         Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
-                global.set(e.isAnnotationPresent(EnableAspectJAutoProxy.class)));
+                enabled.set(e.isAnnotationPresent(EnableAspectJAutoProxy.class)));
 
         Optional.of(getClasses()).ifPresent(e ->
             e.forEach(clazz -> {
                 if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class)){
-                    if(!global.get()){
+                    if(!enabled.get()){
                         //非全局配置
                         if(clazz.isAnnotationPresent(EnableAspectJAutoProxy.class) && clazz.isAnnotationPresent(
                                 Aspect.class)){
@@ -49,19 +49,19 @@ public class AspectHandler {
                             AspectProcessor.getInstance().process(clazz);
                         }else if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
                             //register interceptor
-                            InterceptorProcessor.getInstance().add(clazz);
+                            InterceptorProcessor.getInstance().register(clazz);
                         }
                     }else{
                         if(clazz.isAnnotationPresent(Aspect.class)){
                             AspectProcessor.getInstance().process(clazz);
                         } else if (Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)) {
-                            InterceptorProcessor.getInstance().add(clazz);
+                            InterceptorProcessor.getInstance().register(clazz);
                         }
                     }
                 } else if (clazz.isAnnotationPresent(Interceptor.class)) {
                     if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
                         //register interceptor
-                        InterceptorProcessor.getInstance().add(clazz);
+                        InterceptorProcessor.getInstance().register(clazz);
                     }
                 }
             })

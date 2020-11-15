@@ -3,6 +3,7 @@ package com.boot.mini.core.injection;
 import com.boot.mini.annotation.config.ConfigurationProperties;
 import com.boot.mini.annotation.config.Value;
 import com.boot.mini.core.exception.ExceptionWrapper;
+import com.boot.mini.entity.method.MethodInfo;
 import com.boot.mini.enums.ExceptionEnum;
 
 import java.io.IOException;
@@ -196,12 +197,7 @@ public class ConfigurationProcessor {
         if (!key.isEmpty()) {
             try {
                 //调用set方法将key注入进去
-                String name = f.getName();
-                String setter = "set" + name.substring(0, 1).toUpperCase();
-                if(name.length() > 1){
-                    setter += name.substring(1);
-                }
-                String finalSetter = setter;
+                String finalSetter = MethodInfo.setter(f.getName());
                 Optional<Method> any = Arrays.stream(instance.getClass().getDeclaredMethods()).filter(
                         m -> m.getName().equals(finalSetter) && m.getParameterCount() == 1 &&
                                 m.getParameterTypes()[0] == f.getType()).findAny();

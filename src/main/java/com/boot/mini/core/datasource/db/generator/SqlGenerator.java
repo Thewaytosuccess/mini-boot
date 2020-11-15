@@ -2,9 +2,9 @@ package com.boot.mini.core.datasource.db.generator;
 
 import com.boot.mini.annotation.jpa.PrimaryKey;
 import com.boot.mini.core.datasource.db.DataSourceManager;
-import com.boot.mini.core.datasource.db.JdbcUtil;
 import com.boot.mini.core.exception.ExceptionWrapper;
 import com.boot.mini.core.util.DateUtil;
+import com.boot.mini.entity.method.MethodInfo;
 import com.boot.mini.enums.ExceptionEnum;
 import com.boot.mini.enums.SqlTypeEnum;
 import com.boot.mini.enums.constant.ConstantPool;
@@ -58,13 +58,13 @@ public class SqlGenerator<T> {
                     value = getId(f,obj);
                     isPrimaryKey = false;
                 }else{
-                    value = clazz.getDeclaredMethod(getter(f.getName())).invoke(obj);
+                    value = clazz.getDeclaredMethod(MethodInfo.getter(f.getName())).invoke(obj);
                 }
                 if(Objects.nonNull(value) && value instanceof Date){
                     value = DateUtil.format((Date)value);
                 }
                 if(Objects.nonNull(value) && value instanceof Boolean){
-                    value = (Boolean)value ? 1 : 0;
+                    value = (boolean)value ? 1 : 0;
                 }
                 builder.append(value);
                 if(f.getType() == String.class || f.getType() == Date.class){
@@ -78,19 +78,11 @@ public class SqlGenerator<T> {
         return builder.deleteCharAt(builder.length() - 1).append(")").toString();
     }
 
-    private String getter(String columnName){
-        String getter = "get" + columnName.substring(0,1).toUpperCase();
-        if(columnName.length() > 1){
-            getter += columnName.substring(1);
-        }
-        return getter;
-    }
-
     private Object getId(Field f,Object o) throws Exception {
         String policy = f.getAnnotation(PrimaryKey.class).policy();
         if("random".equals(policy) && f.getAnnotation(PrimaryKey.class).idGenerator() == Void.class){
             String id = UUID.randomUUID().toString().replaceAll(ConstantPool.STRIKE_THROUGH, "");
-            o.getClass().getDeclaredMethod(JdbcUtil.setter(f.getName()),f.getType()).invoke(o,id);
+            o.getClass().getDeclaredMethod(MethodInfo.setter(f.getName()),f.getType()).invoke(o,id);
             return id;
         }else{
             //todo generate pk
@@ -125,7 +117,7 @@ public class SqlGenerator<T> {
         Object value;
         for(Field f:columns){
             try {
-                value = clazz.getDeclaredMethod(getter(f.getName())).invoke(obj);
+                value = clazz.getDeclaredMethod(MethodInfo.getter(f.getName())).invoke(obj);
                 if(Objects.nonNull(value)){
                     builder.append(getColumn(f)).append(" = ");
                     if(f.getType() == String.class){
@@ -143,7 +135,7 @@ public class SqlGenerator<T> {
         }
         builder.deleteCharAt(builder.length() - 1).append(" where ").append(getColumn(pk)).append(" = ");
         try {
-            value = clazz.getDeclaredMethod(getter(pk.getName())).invoke(obj);
+            value = clazz.getDeclaredMethod(MethodInfo.getter(pk.getName())).invoke(obj);
             return pk.getType() == String.class ? builder.append("'").append(value).append("'").toString() :
                    builder.append(value).toString();
         } catch (Exception e) {
