@@ -9,13 +9,14 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author xhzy
  */
 public class MapperProxy implements MethodInterceptor {
 
-    private final Enhancer enhancer = new Enhancer();
+    private Enhancer enhancer ;
 
     private final Class<?> targetClass;
 
@@ -28,6 +29,9 @@ public class MapperProxy implements MethodInterceptor {
      * @return 代理对象
      */
     public Object getProxy(){
+        if(Objects.isNull(enhancer)){
+            enhancer = new Enhancer();
+        }
         //指定为某个类创建子类
         enhancer.setSuperclass(targetClass);
         enhancer.setCallback(this);

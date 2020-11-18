@@ -66,18 +66,26 @@ public class AnotherUserServiceImpl implements UserService {
     @Override
     public List<User> get(User user) {
         QueryWrapper<User> wrapper = new QueryWrapper<User>(){};
-        Long userId = user.getUserId();
-        if(Objects.nonNull(userId)){
-            wrapper.eq("user_id", userId);
-        }
-        String userName = user.getUserName();
-        if(Objects.nonNull(userName)){
-            wrapper.like("user_name",userName);
+        if(Objects.nonNull(user)){
+            Long userId = user.getUserId();
+            if(Objects.nonNull(userId)){
+                wrapper.eq("user_id", userId);
+            }
+            String userName = user.getUserName();
+            if(Objects.nonNull(userName)){
+                wrapper.like("user_name",userName);
+            }
+
+            wrapper.orderByDesc("gmt_created");
+            wrapper.limit(1,1);
         }
 
-        wrapper.orderByDesc("gmt_created");
-        wrapper.limit(1,1);
         return userRepository.select(wrapper);
+    }
+
+    @Override
+    public User getByUserId(Long userId) {
+        return userRepository.selectByPrimaryKey(userId);
     }
 
 }

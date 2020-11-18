@@ -1,5 +1,7 @@
 package com.boot.mini.core.datasource.wrapper.impl;
 
+import com.boot.mini.annotation.jpa.Id;
+import com.boot.mini.annotation.jpa.PrimaryKey;
 import com.boot.mini.core.datasource.db.DataSourceManager;
 import com.boot.mini.core.datasource.db.generator.TableGenerator;
 import com.boot.mini.core.datasource.wrapper.Wrapper;
@@ -11,7 +13,9 @@ import com.boot.mini.enums.constant.ConstantPool;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -32,8 +36,14 @@ public class QueryWrapper<T> implements Wrapper<T> {
         if(Objects.isNull(table)){
             throw new ExceptionWrapper(ExceptionEnum.TABLE_NULL);
         }
-        this.builder = new StringBuilder("select ").append(DataSourceManager.getInstance().getTableMap()
-                .get(t).stream().map(this::getColumn).collect(Collectors.joining(",")))
+
+        List<Field> columns = DataSourceManager.getInstance().getTableMap().get(t);
+        Field[] fields = t.getDeclaredFields();
+        if(columns.size() != fields.length){
+            columns.addAll(Arrays.stream(fields).filter(e -> !e.isAnnotationPresent(Id.class) && !e.isAnnotationPresent(PrimaryKey.class))
+                    .collect(Collectors.toSet()));
+        }
+        this.builder = new StringBuilder("select ").append(columns.stream().map(this::getColumn).collect(Collectors.joining(",")))
                 .append(" from ").append(table).append(" where 1 = 1 and");
     }
 

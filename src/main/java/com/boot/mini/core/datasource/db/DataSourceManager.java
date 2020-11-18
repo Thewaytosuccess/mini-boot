@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author xhzy
@@ -57,7 +58,8 @@ public class DataSourceManager {
     }
 
     private void getColumns(Class<?> clazz) {
-        Set<Field> fields = Arrays.stream(clazz.getDeclaredFields()).filter(e -> e.isAnnotationPresent(Column.class))
+        Stream<Field> stream = Arrays.stream(clazz.getDeclaredFields());
+        Set<Field> fields = stream.filter(e -> e.isAnnotationPresent(Column.class))
                 .collect(Collectors.toSet());
         List<Field> ids = fields.stream().filter(e -> e.isAnnotationPresent(Id.class)).collect(Collectors.toList());
 
@@ -80,8 +82,8 @@ public class DataSourceManager {
         List<Field> properties = new ArrayList<>();
         properties.add(ids.get(0));
         boolean finalIdExist = idExist;
-        properties.addAll(fields.stream().filter(e -> finalIdExist ? !e.isAnnotationPresent(Id.class) :
-                !e.isAnnotationPresent(PrimaryKey.class)).collect(Collectors.toList()));
+        properties.addAll(stream.filter(e -> finalIdExist ? !e.isAnnotationPresent(Id.class) : !e.isAnnotationPresent(PrimaryKey.class))
+                .collect(Collectors.toList()));
 
         tableMap = getTableMap();
         tableMap.put(clazz,properties);

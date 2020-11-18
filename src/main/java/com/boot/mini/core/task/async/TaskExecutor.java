@@ -34,7 +34,7 @@ public class TaskExecutor {
     }
 
     @PreDestroy
-    public void shutdown(){
+    public void destroy(){
         if(Objects.nonNull(executor)){
             executor.shutdown();
         }

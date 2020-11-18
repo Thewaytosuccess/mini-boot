@@ -7,7 +7,6 @@ import com.boot.mini.annotation.param.RequestBody;
 import com.boot.mini.annotation.type.controller.RestController;
 import com.boot.mini.entity.test.User;
 import com.boot.mini.service.UserService;
-import com.mvc.annotation.method.http.*;
 
 /**
  * @author xhzy
@@ -22,6 +21,11 @@ public class AdminController {
     @GetMapping("/get")
     public Object getUser(User user){
         return userService.get(user);
+    }
+
+    @GetMapping("/get/{userId}")
+    public Object getByUserId(@PathVariable("userId") Long userId){
+        return userService.getByUserId(userId);
     }
 
     @PostMapping("/update")

@@ -115,7 +115,7 @@ public class DispatcherServlet extends HttpServlet {
         ScheduledJobManager.getInstance().destroy();
         ConnectionManager.getInstance().destroy();
         //最后关闭线程池
-        TaskExecutor.getInstance().shutdown();
+        TaskExecutor.getInstance().destroy();
         super.destroy();
     }
 }

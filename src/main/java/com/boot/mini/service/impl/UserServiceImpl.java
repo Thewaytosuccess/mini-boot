@@ -43,4 +43,9 @@ public class UserServiceImpl implements UserService {
     public List<User> get(User user) {
         return null;
     }
+
+    @Override
+    public User getByUserId(Long userId) {
+        return null;
+    }
 }

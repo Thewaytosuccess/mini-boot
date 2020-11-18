@@ -9,7 +9,7 @@ import java.util.Date;
 /**
  * @author xhzy
  */
-@Table(create = true)
+//@Table(create = true)
 public class User {
 
     @Id

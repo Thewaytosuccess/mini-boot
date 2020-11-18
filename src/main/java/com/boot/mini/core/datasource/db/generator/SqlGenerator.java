@@ -1,5 +1,6 @@
 package com.boot.mini.core.datasource.db.generator;
 
+import com.boot.mini.annotation.jpa.Id;
 import com.boot.mini.annotation.jpa.PrimaryKey;
 import com.boot.mini.core.datasource.db.DataSourceManager;
 import com.boot.mini.core.exception.ExceptionWrapper;
@@ -10,10 +11,7 @@ import com.boot.mini.enums.SqlTypeEnum;
 import com.boot.mini.enums.constant.ConstantPool;
 
 import java.lang.reflect.Field;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -23,9 +21,14 @@ public class SqlGenerator<T> {
 
     @SafeVarargs
     public final String generate(Object obj, SqlTypeEnum type, Class<T>... t){
-        Class<?> clazz = Objects.nonNull(t) ? t[0] : obj.getClass();
+        Class<?> clazz = Objects.nonNull(t) && t.length > 0 ? t[0] : obj.getClass();
         List<Field> columns = DataSourceManager.getInstance().getTableMap().get(clazz);
+        Field[] fields = clazz.getDeclaredFields();
         if(Objects.nonNull(columns) && !columns.isEmpty()){
+            if(columns.size() != fields.length){
+                columns.addAll(Arrays.stream(fields).filter(e -> !e.isAnnotationPresent(Id.class) && !e.isAnnotationPresent(PrimaryKey.class))
+                        .collect(Collectors.toSet()));
+            }
             switch (type){
                 case INSERT: return insert(obj,columns);
                 case DELETE: return deleteByPrimaryKey(obj,columns);
