@@ -51,7 +51,7 @@ public class DispatcherServlet extends HttpServlet {
         //5.切面扫描,并为切面指向的类创建代理
         AspectHandler.getInstance().aspectScan();
         //6.将代理重新注入ioc容器
-        injectProcessor.reInject();
+        injectProcessor.reInjectAspectProxy();
 
         //7.bean初始化
         BeanInitializer.getInstance().init();

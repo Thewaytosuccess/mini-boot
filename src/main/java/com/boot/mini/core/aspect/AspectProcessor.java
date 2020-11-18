@@ -92,7 +92,7 @@ public class AspectProcessor {
         ControllerAdviceHandler.getInstance().handle().forEach(this::buildClassMethodMap);
         //异步任务扫描
         Set<Signature> signatures = AsyncTaskManager.getInstance().scan();
-        if(Objects.nonNull(signatures)){
+        if(Objects.nonNull(signatures) && !signatures.isEmpty()){
             signatures.forEach(this::buildClassMethodMap);
         }
 

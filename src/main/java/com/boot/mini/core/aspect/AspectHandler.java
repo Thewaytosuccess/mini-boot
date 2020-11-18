@@ -35,16 +35,13 @@ public class AspectHandler {
 
     public void aspectScan() {
         AtomicBoolean enabled = new AtomicBoolean(false);
-        Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
-                enabled.set(e.isAnnotationPresent(EnableAspectJAutoProxy.class)));
-
+        Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e -> enabled.set(e.isAnnotationPresent(EnableAspectJAutoProxy.class)));
         Optional.of(getClasses()).ifPresent(e ->
             e.forEach(clazz -> {
                 if(clazz.isAnnotationPresent(Configuration.class) || clazz.isAnnotationPresent(Component.class)){
                     if(!enabled.get()){
                         //非全局配置
-                        if(clazz.isAnnotationPresent(EnableAspectJAutoProxy.class) && clazz.isAnnotationPresent(
-                                Aspect.class)){
+                        if(clazz.isAnnotationPresent(EnableAspectJAutoProxy.class) && clazz.isAnnotationPresent(Aspect.class)){
                             //register aspect
                             AspectProcessor.getInstance().process(clazz);
                         }else if(Arrays.asList(clazz.getInterfaces()).contains(HandlerInterceptor.class)){
@@ -116,8 +113,7 @@ public class AspectHandler {
     }
 
     public void patternClassScan(String className, Set<Signature> set) {
-        getClasses().stream().filter(e -> e.getName().matches(AspectProcessor.getInstance().toRegExp(className))).
-                forEach(e -> methodScan(e,set));
+        getClasses().stream().filter(e -> e.getName().matches(AspectProcessor.getInstance().toRegExp(className))).forEach(e -> methodScan(e,set));
     }
 
     public void patternMethodScan(String methodName, Set<Signature> set, boolean patternMatch) {
@@ -128,13 +124,11 @@ public class AspectHandler {
             for(Method m:methods){
                 if(patternMatch){
                     if(m.getName().matches(AspectProcessor.getInstance().toRegExp(methodName.substring(index + 1)))){
-                        set.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                className + PATH_SEPARATOR + m.getName()));
+                        set.add(new Signature(m.getParameterCount(),m.getParameterTypes(), className + PATH_SEPARATOR + m.getName()));
                     }
                 }else{
                     if(m.getName().equals(methodName.substring(index + 1))){
-                        set.add(new Signature(m.getParameterCount(),m.getParameterTypes(),
-                                className + PATH_SEPARATOR + m.getName()));
+                        set.add(new Signature(m.getParameterCount(),m.getParameterTypes(), className + PATH_SEPARATOR + m.getName()));
                     }
                 }
             }

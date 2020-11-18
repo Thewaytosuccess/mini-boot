@@ -108,7 +108,7 @@ public class ProceedingJoinPoint {
     }
 
     protected Object handle(){
-        if(Objects.nonNull(beforeMap)){
+        if(Objects.nonNull(beforeMap) && !beforeMap.isEmpty()){
             String methodName = beforeMap.get(getSignature());
             if(Objects.nonNull(methodName) && !methodName.isEmpty()){
                 handle(methodName);
@@ -126,7 +126,7 @@ public class ProceedingJoinPoint {
     }
 
     protected Object preHandle(){
-        if(Objects.nonNull(beforeMap)){
+        if(Objects.nonNull(beforeMap) && !beforeMap.isEmpty()){
             String proxyMethod = beforeMap.get(getSignature());
             if(Objects.nonNull(proxyMethod) && !proxyMethod.isEmpty()){
                 Class<?>[] argTypes = new Class[]{this.getClass().getSuperclass().getSuperclass()};
@@ -140,7 +140,7 @@ public class ProceedingJoinPoint {
     }
 
     private void postHandle(Signature signature){
-        if(Objects.nonNull(afterMap)){
+        if(Objects.nonNull(afterMap) && !afterMap.isEmpty()){
             String methodName = afterMap.get(signature);
             if(Objects.nonNull(methodName) && !methodName.isEmpty()){
                 handle(methodName);
@@ -149,7 +149,7 @@ public class ProceedingJoinPoint {
     }
 
     private void afterCompletion(Signature signature){
-        if(Objects.nonNull(afterReturningMap)){
+        if(Objects.nonNull(afterReturningMap) && !afterReturningMap.isEmpty()){
             String methodName = afterReturningMap.get(signature);
             if(Objects.nonNull(methodName) && !methodName.isEmpty()){
                 handle(methodName);
@@ -158,7 +158,7 @@ public class ProceedingJoinPoint {
     }
 
     private Object afterThrowing(Signature signature,Exception e){
-        if(Objects.nonNull(afterThrowingMap)){
+        if(Objects.nonNull(afterThrowingMap) && !afterThrowingMap.isEmpty()){
             String methodName = afterThrowingMap.get(signature);
             if(Objects.nonNull(methodName) && !methodName.isEmpty()){
                 return handle(methodName,new Class[]{Exception.class},new Object[]{e});

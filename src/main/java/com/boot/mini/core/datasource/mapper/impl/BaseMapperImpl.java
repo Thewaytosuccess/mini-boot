@@ -16,7 +16,7 @@ public class BaseMapperImpl<T> implements BaseMapper<T> {
 
     private SqlGenerator<T> generator;
 
-    public SqlGenerator<T> getSqlGenerator(){
+    private SqlGenerator<T> getSqlGenerator(){
         if(Objects.isNull(generator)){
             generator = new SqlGenerator<>();
         }

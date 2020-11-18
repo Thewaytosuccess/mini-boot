@@ -93,7 +93,7 @@ public class QueryWrapper<T> implements Wrapper<T> {
     private void compare(String column,Object value,String sign){
         if(value instanceof Date){
             Date date = (Date)value;
-            builder.append(" ").append("datediff(").append(column).append(",").append(DateUtil.format(date))
+            builder.append(" datediff(").append(column).append(",").append(DateUtil.format(date))
                     .append(") ").append(sign).append(" 0 and");
         }else if(!(value instanceof String)){
             builder.append(" ").append(column).append(" ").append(sign).append(" ").append(value).append(" and");

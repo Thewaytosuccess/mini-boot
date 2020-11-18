@@ -84,6 +84,9 @@ public class DataBindingProcessor {
      */
     private Map<String,String> getParameterMap(List<String> names, List<String> values) {
         Map<String,String> map = new HashMap<>(16);
+        if(names.size() != values.size()){
+            names = names.subList(0,values.size());
+        }
         for(int i=0,len = values.size();i < len ; ++i){
             map.put(names.get(i),values.get(i));
         }

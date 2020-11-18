@@ -17,8 +17,7 @@ public class DateUtil {
             return null;
         }
 
-        LocalDateTime dateTime = LocalDateTime.parse(s, DateTimeFormatter.ofPattern(getPattern(patterns))
-                .withZone(ZoneId.systemDefault()));
+        LocalDateTime dateTime = LocalDateTime.parse(s, DateTimeFormatter.ofPattern(getPattern(patterns)).withZone(ZoneId.systemDefault()));
         return Date.from(dateTime.toInstant(ZoneOffset.UTC));
     }
 
@@ -26,8 +25,7 @@ public class DateUtil {
         if(Objects.isNull(date)){
             return null;
         }
-        return DateTimeFormatter.ofPattern(getPattern(patterns)).format(
-                LocalDateTime.ofInstant(date.toInstant(),ZoneId.systemDefault()));
+        return DateTimeFormatter.ofPattern(getPattern(patterns)).format(LocalDateTime.ofInstant(date.toInstant(),ZoneId.systemDefault()));
     }
 
     private static String getPattern(String...patterns){

@@ -61,7 +61,7 @@ public class RepositoryManager {
             IocContainer.getInstance().addInstance(e,new MapperProxy(e).getProxy());
         });
 
-        DependencyInjectProcessor.getInstance().reInjectRepository();
+        DependencyInjectProcessor.getInstance().reInjectRepositoryProxy();
         Map<Class<?>, List<Field>> tableMap = DataSourceManager.getInstance().getTableMap();
         entities.forEach(e -> {
             List<Field> fields = tableMap.get(e);

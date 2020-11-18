@@ -113,8 +113,7 @@ public class InterceptorProcessor implements HandlerInterceptor{
         }
         Collections.sort(orderedInterceptors);
         interceptors.clear();
-        interceptors.addAll(orderedInterceptors.stream().map(OrderedInterceptor::getClazz).collect(
-                Collectors.toList()));
+        interceptors.addAll(orderedInterceptors.stream().map(OrderedInterceptor::getClazz).collect(Collectors.toList()));
         interceptors.addAll(unordered);
         sorted = true;
     }

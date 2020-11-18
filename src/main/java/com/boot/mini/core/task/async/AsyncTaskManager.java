@@ -37,8 +37,7 @@ public class AsyncTaskManager {
         Optional.ofNullable(PackageScanner.getInstance().getStarterClass()).ifPresent(e ->
                 global.set(e.isAnnotationPresent(EnableAsync.class)));
         if(!global.get()){
-            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableAsync.class))
-                    .collect(Collectors.toList());
+            classes = classes.stream().filter(e -> e.isAnnotationPresent(EnableAsync.class)).collect(Collectors.toList());
         }
 
         if(!classes.isEmpty()){

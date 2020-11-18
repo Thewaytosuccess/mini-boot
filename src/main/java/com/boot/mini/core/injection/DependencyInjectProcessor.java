@@ -82,7 +82,7 @@ public class DependencyInjectProcessor {
         fieldsInject(instance,Arrays.asList(instance.getClass().getDeclaredFields()),true);
     }
 
-    public void reInject(){
+    public void reInjectAspectProxy(){
         if(AspectProcessor.getInstance().reInjected()){
             Set<Class<?>> set = new HashSet<>();
             Map<Class<?>, Class<?>[]> reInjected = AspectProcessor.getInstance().getReInjected();
@@ -97,7 +97,7 @@ public class DependencyInjectProcessor {
         }
     }
 
-    public void reInjectRepository(){
+    public void reInjectRepositoryProxy(){
         if(RepositoryManager.getInstance().rejected()){
             Set<Class<?>> set = RepositoryManager.getInstance().getReInjected();
             IocContainer.getInstance().getClasses().forEach(e -> reInject(e, set));

@@ -8,6 +8,7 @@ import net.sf.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 原理：为被代理类产生一个子类，通过子类调用父类的方法
@@ -15,7 +16,7 @@ import java.util.List;
  */
 public class CglibProxy extends ProceedingJoinPoint implements MethodInterceptor {
 
-    private final Enhancer enhancer = new Enhancer();
+    private Enhancer enhancer ;
 
     public CglibProxy(Object target, List<Signature> info, boolean jdkProxy) {
         super(target, info, jdkProxy);
@@ -26,6 +27,9 @@ public class CglibProxy extends ProceedingJoinPoint implements MethodInterceptor
      * @return 代理对象
      */
     public Object getProxy(){
+        if(Objects.isNull(enhancer)){
+            enhancer = new Enhancer();
+        }
         //指定为某个类创建子类
         enhancer.setSuperclass(target.getClass());
         enhancer.setCallback(this);
